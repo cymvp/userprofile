@@ -50,10 +50,8 @@ def func(i, j):
 
 if __name__ == "__main__":  # nDays,  mTop
     i = 0
-    a = write_thread(target=func, args=(1, 2))
-    a.start()
-
-    sys.exit(1)
+    write_thread_obj = write_thread()
+    write_thread_obj.start()
     
     total_device_count = 0
     
@@ -61,7 +59,7 @@ if __name__ == "__main__":  # nDays,  mTop
     g_foreign_collection_map = {g_foreign_tuple_list[0]: PFHWVCollectionManager.getCollectionName(), 
                                 g_foreign_tuple_list[1]: PFProvinceCollectionManager.getCollectionName(),
                                 g_foreign_tuple_list[2]: PFAPPCollectionManager.getCollectionName()}
-    
+    '''
     if len(sys.argv) == 5:
         tagManager = dbmanager.pf_tags_collection_manager.PFTagsCollectionManager()
         #tagUidsManager = dbmanager.pf_taguid_collection_manager.PFTagUidsCollectionManager()
@@ -70,9 +68,9 @@ if __name__ == "__main__":  # nDays,  mTop
         #for tagMap in tagLst:
         #    tagUidsManager.insertOrUpdateCollection(tagMap, '123456')
         sys.exit(1)
-    
+    '''
     if len(sys.argv) != 4:
-        print("Error params...... python pf_calc_profile.py nDays, mTop ")
+        print("Error params...... python pf_calc__profile_device.py nDays, mTop ")
         sys.exit(1)
         
     fMetricMap = libs.util.my_utils.openFile(sys.argv[3], 'r')
@@ -83,6 +81,7 @@ if __name__ == "__main__":  # nDays,  mTop
     part2_total_duration = 0
     part3_total_duration = 0
     part4_total_duration = 0
+    part5_total_duration = 0
     
     recordTime = libs.util.my_utils.RecordTime()
     printProcess = libs.util.my_utils.PrintProcess('')
@@ -107,6 +106,14 @@ if __name__ == "__main__":  # nDays,  mTop
     cursorLst = util.utils.getCursorLst(metricManager, monthLst)
     #Parse all user and info,and save to map.
     
+        # For calculating tags of profile collection.
+    tagCursors = tagManager.getAllDoc()
+    tagLst = dbmanager.pf_tags_collection_manager.PFTagsCollectionManager.final_convertCursor(tagCursors)
+    
+    tagObjectLst = []
+    for t in tagLst:
+        tagObjectLst.append(dbmanager.pf_tags_collection_manager.PFTagsCollectionManager.final_convert2Tag(t)) 
+    
     ellapsedTime = recordTime.getEllapsedTime()
     libs.util.logger.Logger.getInstance().debugLog("Call buildMetricData(): take %.3fs" % ellapsedTime)
     
@@ -127,15 +134,18 @@ if __name__ == "__main__":  # nDays,  mTop
                 break
             
             uid = cur[dbmanager.pf_collection_manager.PFCollectionManager.final_getUidLabel()]
+            '''
+            if uid != '865854010357857Kr7Ri':
+                continue
+            else:
+                print("Find it!")
+            '''
             uidMap, userInfoMap = util.utils.buildMetricData_new(metricManager,  cur, metricMap, g_foreign_tuple_list)
             part1_total_duration += recordTime.getEllaspedTimeSinceLast()
-    
+            
             #sys.argv[2] is refered days.
             resultMap = util.utils.calc_profile(uidMap,  sys.argv[2])
             part2_total_duration += recordTime.getEllaspedTimeSinceLast()
-    
-            #libs.util.logger.Logger.getInstance().debugLog("Start inserting into MongoDB device profile: %d device profile result." % len(resultMap))
-    
 
             cuid = userInfoMap[uid].get(dbmanager.pf_device_collection_manager.PFCollectionManager.final_getCUidLabel())
             imei = userInfoMap[uid].get(dbmanager.pf_device_collection_manager.PFCollectionManager.final_getIMEILabel())
@@ -162,14 +172,36 @@ if __name__ == "__main__":  # nDays,  mTop
                 key_list = foreign_map[foreign_tuple]
                 
                 foreign_data_map = consist_of_foreign_data(key_list, foreign_tuple, foreign_collection_name, old_linked_node_map)
-                #part3_total_duration += recordTime.getEllaspedTimeSinceLast()
+
                 if resultMap[uid].get(userProfileManager.final_get_label_linkde_node()) is None:
                     resultMap[uid][userProfileManager.final_get_label_linkde_node()] = {} 
                 resultMap[uid][userProfileManager.final_get_label_linkde_node()][next(foreign_data_map.__iter__())] = next(foreign_data_map.values().__iter__())
             part3_total_duration += recordTime.getEllaspedTimeSinceLast()
+            
             cur, is_insert = userProfileManager.merge_new_data_map(cur, uid, cuid, imei, resultMap[uid])
-           
-            userProfileManager.insertOrUpdateUser(cur, is_insert)
+            
+            tagMap, userInfoMap = util.calc_tag.calc_tags(userProfileManager, cur,  tagLst, tagObjectLst)
+            #part2_total_duration += recordTime.getEllaspedTimeSinceLast()
+            '''profileMap is:
+                "profile_tags":[  
+                       {'tagid1':123, 'name': n880e, 'category': model},  
+                       {'tagid2':456, 'name': n880e, 'category': model}  
+                ] ,
+                "profile_tags":[
+                                       
+                ] , 
+                ......
+            }'''
+                
+            for uid in tagMap:
+                profileMap = {dbmanager.pf_device_collection_manager.PFDeviceCollectionManager.final_getProfileTagLabel():tagMap[uid]}
+                cur, temp_flag = userProfileManager.merge_new_data_map(cur, uid, cuid, imei, profileMap)
+                write_thread.write_to_queue(userProfileManager.getCollectionName(), cur, is_insert)
+                #userProfileManager.insertOrUpdateUser_old(uid,  userInfoMap[uid][dbmanager.pf_device_collection_manager.PFCollectionManager.final_getCUidLabel()],  userInfoMap[uid][dbmanager.pf_device_collection_manager.PFCollectionManager.final_getIMEILabel()],  profileMap)
+                #anandonTagLst = userInfoMap[uid].get('abondonTagList')
+                #newTagLst = tagMap[uid]
+
+            #userProfileManager.insertOrUpdateUser(cur, is_insert)
             
             #resultMap[uid][list(foreign_data_map.keys())[0]] = next(foreign_data_map.values().__iter__())
             #userProfileManager.insertOrUpdateUser_old(uid,  cuid, imei, resultMap[uid])
@@ -177,61 +209,74 @@ if __name__ == "__main__":  # nDays,  mTop
             #till here, Performance: 4000/5.5s on PC.
             part4_total_duration += recordTime.getEllaspedTimeSinceLast()
             
+    libs.util.logger.Logger.getInstance().debugLog("start waiting for write thread finished.: %.3fs ." % part1_total_duration)
+    write_thread_obj.set_interrupt()
+    write_thread.get_queue().join()
+    part5_total_duration += recordTime.getEllaspedTimeSinceLast()
+    
     libs.util.logger.Logger.getInstance().debugLog("total time of part1 is: %.3fs ." % part1_total_duration)
     libs.util.logger.Logger.getInstance().debugLog("total time of part2 is: %.3fs ." % part2_total_duration)
     libs.util.logger.Logger.getInstance().debugLog("total time of part3 is: %.3fs ." % part3_total_duration)
     libs.util.logger.Logger.getInstance().debugLog("total time of part4 is: %.3fs ." % part4_total_duration)
+    libs.util.logger.Logger.getInstance().debugLog("total time of part5 is: %.3fs ." % part5_total_duration)
     
     ellapsedTime = recordTime.getEllapsedTime()
     printProcess.printCurrentProcess(ellapsedTime, total_device_count)
     
-    #sys.exit(1)
     
-    # For calculating tags of profile collection.
-    tagCursors = tagManager.getAllDoc()
-    tagLst = dbmanager.pf_tags_collection_manager.PFTagsCollectionManager.final_convertCursor(tagCursors)
+    '''
+    Not call any more.
+    '''
+    sys.exit(1)
     
     libs.util.logger.Logger.getInstance().debugLog("Start calculating tags.")
-    tagMap, userInfoMap = util.calc_tag.calc_tags(userProfileManager,  tagLst)
-    #Fixed me!
-    #sys.exit(1)
+    
+    total_device_count = 0 
+    part1_total_duration = 0
+    part2_total_duration = 0
+    part3_total_duration = 0
+    part4_total_duration = 0
+    
+    #Get all user doc of profile_collection
+    profileCursors = userProfileManager.getAllDoc()
+    
+    if profileCursors is None:
+        libs.util.logger.Logger.getInstance().debugLog("device_collection is not existed, just quit.")
+        sys.exit(1)
 
-    '''profileMap is:
-        "profile_tags":[  
-               {'tagid1':123, 'name': n880e, 'category': model},  
-               {'tagid2':456, 'name': n880e, 'category': model}  
-        ] ,
-        "profile_tags":[
-                               
-        ] , 
-        ......
-    }'''
-    libs.util.logger.Logger.getInstance().debugLog("Start inserting tags into user profile and tag uids: %d uids." % len(tagMap))
-    g_total_num = 0    
+    max_count = get_actural_count(profileCursors.count(), PERFORMANCE_DEVICE_TAG_COUNT)
+    
+    #for each user profile doc; cur is user doc.
+    for cur in profileCursors:
+        #till here, Performance: 4000/0.54s on PC.
+        part1_total_duration += recordTime.getEllaspedTimeSinceLast()
+        total_device_count += 1
+        if total_device_count % 1000 == 0:
+            libs.util.logger.Logger.getInstance().debugLog("Has handled %d device." % total_device_count)
+        #Fixed me!!!!!!
+        if total_device_count > max_count:
+            break
+    
+        tagMap, userInfoMap = util.calc_tag.calc_tags(userProfileManager, cur,  tagLst, tagObjectLst)
+        part2_total_duration += recordTime.getEllaspedTimeSinceLast()
+        '''profileMap is:
+            "profile_tags":[  
+                   {'tagid1':123, 'name': n880e, 'category': model},  
+                   {'tagid2':456, 'name': n880e, 'category': model}  
+            ] ,
+            "profile_tags":[
+                                   
+            ] , 
+            ......
+        }'''
+            
+        for uid in tagMap:
+            profileMap = {dbmanager.pf_device_collection_manager.PFDeviceCollectionManager.final_getProfileTagLabel():tagMap[uid]}
+            userProfileManager.insertOrUpdateUser_old(uid,  userInfoMap[uid][dbmanager.pf_device_collection_manager.PFCollectionManager.final_getCUidLabel()],  userInfoMap[uid][dbmanager.pf_device_collection_manager.PFCollectionManager.final_getIMEILabel()],  profileMap)
+            #anandonTagLst = userInfoMap[uid].get('abondonTagList')
+            #newTagLst = tagMap[uid]
+        part3_total_duration += recordTime.getEllaspedTimeSinceLast()
         
-    for uid in tagMap:
-        g_total_num += 1
-        if g_total_num % 1000 == 0:
-            libs.util.logger.Logger.getInstance().debugLog("Has handled %d device." % g_total_num)
-        profileMap = {dbmanager.pf_device_collection_manager.PFDeviceCollectionManager.final_getProfileTagLabel():tagMap[uid]}
-        userProfileManager.insertOrUpdateUser_old(uid,  userInfoMap[uid][dbmanager.pf_device_collection_manager.PFCollectionManager.final_getCUidLabel()],  userInfoMap[uid][dbmanager.pf_device_collection_manager.PFCollectionManager.final_getIMEILabel()],  profileMap)
-        anandonTagLst = userInfoMap[uid].get('abondonTagList')
-        newTagLst = tagMap[uid]
-        if anandonTagLst is not None:
-            pass
-            for abandonTag in anandonTagLst:
-                pass
-                #libs.util.logger.Logger.getInstance().debugLog("anabdon Tag is : %s" % str(abandonTag))
-                #tagUidsManager.removeUid(abandonTag, uid) 
-                #tagUidsRedis.srem(str(abandonTag.get(dbmanager.pf_tags_collection_manager.PFTagsCollectionManager.getTagIdLabel())), uid)
-        if newTagLst is not None:
-            pass
-            for tgMap in newTagLst:
-                pass
-                #tagUidsManager.insertOrUpdateCollection(tgMap, uid)
-                #libs.util.logger.Logger.getInstance().debugLog("new Tag is : %s" % str(tgMap))
-                #tagUidsRedis.sadd(str(tgMap.get(dbmanager.pf_tags_collection_manager.PFTagsCollectionManager.getTagIdLabel())), uid)
-  
     ellapsedTime = recordTime.getEllapsedTime()
     printProcess.printFinalInfo(ellapsedTime)            
 
