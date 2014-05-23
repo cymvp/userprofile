@@ -4061,3 +4061,41 @@
 [2014-05-23 12:52:51,D] select one redis server and queue: redis02.baiyi.com:6379-key_userprofile_l-2224218
 [2014-05-23 12:52:54,D] select one redis server and queue: redis02.baiyi.com:6379-key_userprofile_l-2224218
 [2014-05-23 12:52:54,D] server redis02.baiyi.com:6379 is OK
+[2014-05-23 12:52:57,D] server redis02.baiyi.com:6379 is OK
+[2014-05-23 12:52:57,D] select one redis server and queue: redis02.baiyi.com:6379-key_userprofile_l-2224218
+[2014-05-23 12:53:01,D] server redis02.baiyi.com:6379 is OK
+[2014-05-23 12:53:01,D] select one redis server and queue: redis02.baiyi.com:6379-key_userprofile_l-2224218
+[2014-05-23 12:53:04,D] select one redis server and queue: redis02.baiyi.com:6379-key_userprofile_l-2224218
+[2014-05-23 12:53:04,D] server redis02.baiyi.com:6379 is OK
+[2014-05-23 12:53:07,D] server redis02.baiyi.com:6379 is OK
+[2014-05-23 12:53:07,D] select one redis server and queue: redis02.baiyi.com:6379-key_userprofile_l-2224218
+[2014-05-23 12:53:11,D] server redis02.baiyi.com:6379 is OK
+[2014-05-23 12:53:11,D] select one redis server and queue: redis02.baiyi.com:6379-key_userprofile_l-2224218
+[2014-05-23 12:53:14,D] server redis02.baiyi.com:6379 is OK
+[2014-05-23 12:53:14,D] select one redis server and queue: redis02.baiyi.com:6379-key_userprofile_l-2224218
+[2014-05-23 12:53:17,D] server redis02.baiyi.com:6379 is OK
+[2014-05-23 12:53:17,D] select one redis server and queue: redis02.baiyi.com:6379-key_userprofile_l-2224218
+[2014-05-23 12:53:21,D] server redis02.baiyi.com:6379 is OK
+[2014-05-23 12:53:21,D] select one redis server and queue: redis02.baiyi.com:6379-key_userprofile_l-2224218
+[2014-05-23 12:53:24,D] server redis02.baiyi.com:6379 is OK
+[2014-05-23 12:53:24,D] select one redis server and queue: redis02.baiyi.com:6379-key_userprofile_l-2224218
+[2014-05-23 12:53:27,D] server redis02.baiyi.com:6379 is OK
+[2014-05-23 12:53:27,D] select one redis server and queue: redis02.baiyi.com:6379-key_userprofile_l-2224218
+[2014-05-23 12:53:31,D] server redis02.baiyi.com:6379 is OK
+[2014-05-23 12:53:31,D] select one redis server and queue: redis02.baiyi.com:6379-key_userprofile_l-2224218
+[2014-05-23 12:53:34,D] server redis02.baiyi.com:6379 is OK
+[2014-05-23 12:53:34,D] select one redis server and queue: redis02.baiyi.com:6379-key_userprofile_l-2224218
+[2014-05-23 12:53:37,D] server redis02.baiyi.com:6379 is OK
+[2014-05-23 12:53:37,D] select one redis server and queue: redis02.baiyi.com:6379-key_userprofile_l-2224218
+[2014-05-23 12:53:41,D] server redis02.baiyi.com:6379 is OK
+[2014-05-23 12:53:41,D] select one redis server and queue: redis02.baiyi.com:6379-key_userprofile_l-2224218
+[2014-05-23 12:53:44,D] server redis02.baiyi.com:6379 is OK
+[2014-05-23 12:53:44,D] select one redis server and queue: redis02.baiyi.com:6379-key_userprofile_l-2224218
+[2014-05-23 12:53:47,D] server redis02.baiyi.com:6379 is OK
+[2014-05-23 12:53:47,D] select one redis server and queue: redis02.baiyi.com:6379-key_userprofile_l-2224218
+[2014-05-23 12:53:51,D] server redis02.baiyi.com:6379 is OK
+[2014-05-23 12:53:51,D] select one redis server and queue: redis02.baiyi.com:6379-key_userprofile_l-2224218
+[2014-05-23 12:53:54,D] server redis02.baiyi.com:6379 is OK
+[2014-05-23 12:53:54,D] select one redis server and queue: redis02.baiyi.com:6379-key_userprofile_l-2224218
+[2014-05-23 12:53:57,D] server redis02.baiyi.com:6379 is OK
+[2014-05-23 12:53:57,D] select one redis server and queue: redis02.baiyi.com:6379-key_userprofile_l-2224218
