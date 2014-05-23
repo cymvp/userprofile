@@ -69,6 +69,10 @@ def __convert_appid_metricid(arr, appid, metricid):
 if __name__ == "__main__":
     
     fInputFile = None
+    
+    print('a')
+    
+    sys.exit(1)
         
     metricCollectionManager = PFMetricCollectionManager()
     g_hwvCollectionManager = PFHWVCollectionManager()

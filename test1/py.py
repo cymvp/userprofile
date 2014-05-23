@@ -35,15 +35,10 @@ class MyClass(Singleton):
 #print(two.a)
 
 if __name__ == "__main__":  # nDays,  mTop
-    
-    print('a')
-    
     recordTime = libs.util.my_utils.RecordTime()
     printProcess = libs.util.my_utils.PrintProcess('')
     
     recordTime.startTime()
-    
-    
     '''
     i = 0
     while i < 10000:
@@ -55,7 +50,7 @@ if __name__ == "__main__":  # nDays,  mTop
     print("part1 time is: %.3fx" % ellapsedTime)
     '''
     
-    sys.exit(1)
+    #sys.exit(1)
     
     tagManager = dbmanager.pf_tags_collection_manager.PFTagsCollectionManager()
     deviceManager = PFDeviceCollectionManager()

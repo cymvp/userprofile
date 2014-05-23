@@ -142,7 +142,7 @@ if __name__ == "__main__":
     #dbManager.isExistByDay('20131010')
     #dbManager.buildInsertStr(columnNameLst, 'rom_version_stat')
     #dbManager.insert2DB(resultMap, '20130901')
-#x = buildInsertStr(['a', 'b', 'c'], 'test')
+#x = buildInsertStr(['a', 'b', 'c'], 'py')
 #print(x)
            
         

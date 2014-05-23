@@ -8,6 +8,9 @@ import libs.util.logger
 import libs.util.my_utils
 import util.calc_tag
 import ubc.pf_metric_helper
+from config.const import *
+from mythread.write_thread import write_thread
+import time
 
 from dbmanager.pf_hwv_collection import PFHWVCollectionManager
 from dbmanager.pf_province_collection import PFProvinceCollectionManager
@@ -40,9 +43,19 @@ def consist_of_foreign_data(key_list, foreign_tuple, collection_name, old_linked
         l = 20
     return {foreign_label:{'linked_collection' : collection_name, 'linked_list' : key_list[0: l]}}
 
+def func(i, j):
+    time.sleep(5)
+    print(i)
+    print(j)
+
 if __name__ == "__main__":  # nDays,  mTop
+    i = 0
+    a = write_thread(target=func, args=(1, 2))
+    a.start()
+
+    sys.exit(1)
     
-    g_total_num = 0
+    total_device_count = 0
     
     g_foreign_tuple_list = [('1', '0x1'), ('1', '0x2'), ('1', '0x3')]
     g_foreign_collection_map = {g_foreign_tuple_list[0]: PFHWVCollectionManager.getCollectionName(), 
@@ -97,78 +110,80 @@ if __name__ == "__main__":  # nDays,  mTop
     ellapsedTime = recordTime.getEllapsedTime()
     libs.util.logger.Logger.getInstance().debugLog("Call buildMetricData(): take %.3fs" % ellapsedTime)
     
-    ##Fixed me! Recovery it!
-    
-    uidMap, userInfoMap = util.utils.buildMetricData(metricManager,  cursorLst, metricMap, g_foreign_tuple_list)
-    
-    ellapsedTime = recordTime.getEllapsedTime()
-    libs.util.logger.Logger.getInstance().debugLog("Ending buildMetricData(): take %.3fs" % ellapsedTime)
-    
-    libs.util.logger.Logger.getInstance().debugLog("Start calc_profile(): %d uid document." % len(uidMap))
-    #sys.argv[2] is refered days.
-    resultMap = util.utils.calc_profile(uidMap,  sys.argv[2])
-    
-    ellapsedTime = recordTime.getEllapsedTime()
-    libs.util.logger.Logger.getInstance().debugLog("Ending calc_profile(): take %.3fs" % ellapsedTime)
-    
-    libs.util.logger.Logger.getInstance().debugLog("Start inserting into MongoDB device profile: %d device profile result." % len(resultMap))
-    
-    g_total_num = 0    
-    for uid in resultMap:
-        
-        g_total_num += 1
-        if g_total_num % 1000 == 0:
-            libs.util.logger.Logger.getInstance().debugLog("Has handled %d device." % g_total_num)
-        
-        cuid = userInfoMap[uid].get(dbmanager.pf_device_collection_manager.PFCollectionManager.final_getCUidLabel())
-        imei = userInfoMap[uid].get(dbmanager.pf_device_collection_manager.PFCollectionManager.final_getIMEILabel())
-        #for _id in list(userInfoMap[uid]['foreign_key_list'].values())[0]:
-        
-        #part1_total_duration += recordTime.getEllaspedTimeSinceLast()
-        #merge_new_data_map()
-        cur = userProfileManager.isDocExist(uid)
-        if cur is None or cur.count() == 0:
-            old_linked_node_map = {}
-        else:
-            cur = next(cur.__iter__())
-            old_linked_node_map = PFCollectionManager.final_get_linked_node_by_cur(cur)
-        #till here, Performance: 4000/10s on PC.
-        part2_total_duration += recordTime.getEllaspedTimeSinceLast()
-        if userInfoMap[uid].get('foreign_key_list') is None or len(userInfoMap[uid].get('foreign_key_list')) == 0:
-            foreign_map = {}
-        else:
-            foreign_map = userInfoMap[uid]['foreign_key_list']
-        #userInfoMap[uid]['foreign_key_list'] is: {(1,1) : ['ZTE N807', 'ZTE N807'], (1,2):['beijing', 'shanghai']}
-        
-        for foreign_tuple in foreign_map:
-            if foreign_tuple not in g_foreign_tuple_list:
-                continue
-            foreign_collection_name = g_foreign_collection_map[foreign_tuple]
-            key_list = foreign_map[foreign_tuple]
+    #cursorLst contains all cursor whch located in diffferent metric collections, seperated by month.
+    for curs in cursorLst:
+        # curs contains cursor which located in same metric collections.
+        max_count = get_actural_count(curs.count(), PERFORMANCE_DEVICE_COUNT)
+        for cur in curs:
+            total_device_count += 1
+            if total_device_count % 1000 == 0:
+                libs.util.logger.Logger.getInstance().debugLog("Has handled %d device." % total_device_count)
+                libs.util.logger.Logger.getInstance().debugLog("total time of part1 is: %.3fs ." % part1_total_duration)
+                libs.util.logger.Logger.getInstance().debugLog("total time of part2 is: %.3fs ." % part2_total_duration)
+                libs.util.logger.Logger.getInstance().debugLog("total time of part3 is: %.3fs ." % part3_total_duration)
+                libs.util.logger.Logger.getInstance().debugLog("total time of part4 is: %.3fs ." % part4_total_duration)
+            #Fixed me!!!!!! temp py.
+            if total_device_count >= max_count:
+                break
             
-            foreign_data_map = consist_of_foreign_data(key_list, foreign_tuple, foreign_collection_name, old_linked_node_map)
-            part3_total_duration += recordTime.getEllaspedTimeSinceLast()
-            if resultMap[uid].get(userProfileManager.final_get_label_linkde_node()) is None:
-                resultMap[uid][userProfileManager.final_get_label_linkde_node()] = {} 
-            resultMap[uid][userProfileManager.final_get_label_linkde_node()][next(foreign_data_map.__iter__())] = next(foreign_data_map.values().__iter__())
-        part3_total_duration += recordTime.getEllaspedTimeSinceLast()
-        cur, is_insert = userProfileManager.merge_new_data_map(cur, uid, cuid, imei, resultMap[uid])
-       
-        userProfileManager.insertOrUpdateUser(cur, is_insert)
-        
-        #resultMap[uid][list(foreign_data_map.keys())[0]] = next(foreign_data_map.values().__iter__())
-        #userProfileManager.insertOrUpdateUser_old(uid,  cuid, imei, resultMap[uid])
-        
-        #till here, Performance: 4000/5.5s on PC.
-        part4_total_duration += recordTime.getEllaspedTimeSinceLast()
+            uid = cur[dbmanager.pf_collection_manager.PFCollectionManager.final_getUidLabel()]
+            uidMap, userInfoMap = util.utils.buildMetricData_new(metricManager,  cur, metricMap, g_foreign_tuple_list)
+            part1_total_duration += recordTime.getEllaspedTimeSinceLast()
     
+            #sys.argv[2] is refered days.
+            resultMap = util.utils.calc_profile(uidMap,  sys.argv[2])
+            part2_total_duration += recordTime.getEllaspedTimeSinceLast()
+    
+            #libs.util.logger.Logger.getInstance().debugLog("Start inserting into MongoDB device profile: %d device profile result." % len(resultMap))
+    
+
+            cuid = userInfoMap[uid].get(dbmanager.pf_device_collection_manager.PFCollectionManager.final_getCUidLabel())
+            imei = userInfoMap[uid].get(dbmanager.pf_device_collection_manager.PFCollectionManager.final_getIMEILabel())
+
+            #merge_new_data_map()
+            cur = userProfileManager.isDocExist(uid)
+            if cur is None or cur.count() == 0:
+                old_linked_node_map = {}
+            else:
+                cur = next(cur.__iter__())
+                old_linked_node_map = PFCollectionManager.final_get_linked_node_by_cur(cur)
+            #till here, Performance: 4000/10s on PC.
+
+            if userInfoMap[uid].get('foreign_key_list') is None or len(userInfoMap[uid].get('foreign_key_list')) == 0:
+                foreign_map = {}
+            else:
+                foreign_map = userInfoMap[uid]['foreign_key_list']
+            #userInfoMap[uid]['foreign_key_list'] is: {(1,1) : ['ZTE N807', 'ZTE N807'], (1,2):['beijing', 'shanghai']}
+            
+            for foreign_tuple in foreign_map:
+                if foreign_tuple not in g_foreign_tuple_list:
+                    continue
+                foreign_collection_name = g_foreign_collection_map[foreign_tuple]
+                key_list = foreign_map[foreign_tuple]
+                
+                foreign_data_map = consist_of_foreign_data(key_list, foreign_tuple, foreign_collection_name, old_linked_node_map)
+                #part3_total_duration += recordTime.getEllaspedTimeSinceLast()
+                if resultMap[uid].get(userProfileManager.final_get_label_linkde_node()) is None:
+                    resultMap[uid][userProfileManager.final_get_label_linkde_node()] = {} 
+                resultMap[uid][userProfileManager.final_get_label_linkde_node()][next(foreign_data_map.__iter__())] = next(foreign_data_map.values().__iter__())
+            part3_total_duration += recordTime.getEllaspedTimeSinceLast()
+            cur, is_insert = userProfileManager.merge_new_data_map(cur, uid, cuid, imei, resultMap[uid])
+           
+            userProfileManager.insertOrUpdateUser(cur, is_insert)
+            
+            #resultMap[uid][list(foreign_data_map.keys())[0]] = next(foreign_data_map.values().__iter__())
+            #userProfileManager.insertOrUpdateUser_old(uid,  cuid, imei, resultMap[uid])
+            
+            #till here, Performance: 4000/5.5s on PC.
+            part4_total_duration += recordTime.getEllaspedTimeSinceLast()
+            
     libs.util.logger.Logger.getInstance().debugLog("total time of part1 is: %.3fs ." % part1_total_duration)
     libs.util.logger.Logger.getInstance().debugLog("total time of part2 is: %.3fs ." % part2_total_duration)
     libs.util.logger.Logger.getInstance().debugLog("total time of part3 is: %.3fs ." % part3_total_duration)
     libs.util.logger.Logger.getInstance().debugLog("total time of part4 is: %.3fs ." % part4_total_duration)
     
     ellapsedTime = recordTime.getEllapsedTime()
-    printProcess.printCurrentProcess(ellapsedTime, len(uidMap))
+    printProcess.printCurrentProcess(ellapsedTime, total_device_count)
     
     #sys.exit(1)
     
