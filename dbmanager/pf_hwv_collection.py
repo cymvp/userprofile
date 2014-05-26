@@ -22,6 +22,7 @@ class PFHWVCollectionManager(PFCollectionManager):
     def __getCollectionName__(self,   params = None):
         return PFHWVCollectionManager.__PROFILE_COLLCETION_PREFIX
     
+    '''
     def insertOrUpdateCollection(self,  _id,  valueMap,  collection = None):
         #_id is model.
         if collection is None:
@@ -42,14 +43,44 @@ class PFHWVCollectionManager(PFCollectionManager):
             for statName in valueMap: 
                     userMap[statName] = valueMap[statName]
             self.mDBManager.update(self.__buildUid__(_id),  userMap,  collection)  
-            
+    '''      
    
     def __buildDocUser__(self,  _id):
         userMap = {}
         userMap[PFHWVCollectionManager.final_getUidLabel()] = _id
         return userMap
     
-        
+    def merge_new_data_map(self, cur, _id, value_map):
+        isInsert = 0
+        data_map = {}
+        if cur is None:
+            data_map = self.__buildDocUser__(_id)
+            isInsert = 1
+        else:
+            #update
+            data_map = cur
+        '''For each of stat map: 
+                {
+                  statName1: [
+                    {'launch_count': 8, 'packagename': com.baidu.map, 'duration': 20}, 
+                    {}, 
+                    {}
+                  ], 
+                  statName2: [],
+                  .......
+                } 
+        ''' 
+        for statName in value_map:  #valueMap[chunleiId]
+            data_map[statName] = value_map[statName]
+        return (data_map, isInsert)
+    
+    def insertOrUpdateCollection(self, cur, is_insert, collection = None): 
+        if collection is None:
+            collection = self.mDBManager.getCollection(self.__getCollectionName__())
+        if is_insert == 1:
+            self.mDBManager.insert(cur,  collection)
+        else:
+            self.mDBManager.update(self.__buildUid__(cur[PFCollectionManager.final_getUidLabel()]),  cur,  collection)    
     #override
     #def getMetaInfo(self, dicMap):
         '''

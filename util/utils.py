@@ -125,7 +125,7 @@ def getCursorLst(manager,  monthLst):
     return cursorLst
 
 
-def buildMetricData(manager,  cursorLst, appId_metricId_map, foreign_tuple_lst = None):
+def buildMetricData(manager,  cursorLst, appId_metricId_map, foreign_tuple_lst = None, num = -1):
     '''userInfoMap is the map, which contains the cuid, imei, model of uid.
        uidMap is the map, which contains all metrics list of certain user.
     '''
@@ -142,8 +142,10 @@ def buildMetricData(manager,  cursorLst, appId_metricId_map, foreign_tuple_lst =
     
     #cursorLst contains all cursor whch located in diffferent metric collections, seperated by month.
     for curs in cursorLst:
+        if num < 0:
+            num = curs.count()
         # curs contains cursor which located in same metric collections.
-        max_count = get_actural_count(curs.count(), PERFORMANCE_DEVICE_COUNT)
+        max_count = get_actural_count(num, PERFORMANCE_DEVICE_COUNT)
         for cur in curs:
             #part1_total_duration += recordTime.getEllaspedTimeSinceLast()
             total_device_count += 1
@@ -151,7 +153,7 @@ def buildMetricData(manager,  cursorLst, appId_metricId_map, foreign_tuple_lst =
                 libs.util.logger.Logger.getInstance().debugLog("Has handled %d device." % total_device_count)
                 #sys.exit(1)
             #Fixed me!!!!!! temp py.
-            if total_device_count >= max_count:
+            if total_device_count > max_count:
                 break
             #part2_total_duration += recordTime.getEllaspedTimeSinceLast()
 
@@ -208,7 +210,7 @@ def buildMetricData(manager,  cursorLst, appId_metricId_map, foreign_tuple_lst =
                     else:
                         # foreign data can not be inserted , because, it maybe contains more than one foreign keys.
                         # foreign data will be consisted as "model_1_1:[{}] after calc_profile() function later.
-                                        
+                        print("Error!Can not run to here!")                
                         if uidMap[uid].get((appId,  metricId)) is None:
                             uidMap[uid][(appId,  metricId)] = []
                         uidMap[uid][(appId,  metricId)].extend(metricDataLst)
@@ -236,96 +238,11 @@ def buildMetricData(manager,  cursorLst, appId_metricId_map, foreign_tuple_lst =
     return (uidMap, userInfoMap)
 
 
-def buildMetricData_new(manager,  cur, appId_metricId_map, foreign_tuple_lst = None):
+def buildMetricData_new(manager,  cur, appId_metricId_map, foreign_tuple_lst = None, num = 1):
     '''userInfoMap is the map, which contains the cuid, imei, model of uid.
        uidMap is the map, which contains all metrics list of certain user.
     '''
-    uidMap = {}
-    userInfoMap = {}
-    total_device_count = 0
-    
-    #part1_total_duration = 0
-    #part2_total_duration = 0
-    #recordTime = libs.util.my_utils.RecordTime()
-    #recordTime.startTime()
-    uid = cur[dbmanager.pf_collection_manager.PFCollectionManager.final_getUidLabel()]
-    # one uid -> one userInfo, which got from manager represent as certain collection.
-    userInfoMap[uid] = manager.getMetaInfo(cur)
-    
-    if uidMap.get(uid) is None:
-        uidMap[uid] = {}
-    # metrics is a list.
-    metrics = cur.get(dbmanager.pf_metric_collection_manager.PFMetricCollectionManager.final_getMetricsLabel())
-    if metrics is None:
-        metrics = []
-    #metric is a map.
-    for metric in metrics:
-        metricId = metric[dbmanager.pf_metric_collection_manager.PFMetricCollectionManager.final_getMetricIdLabel()]
-        appId = metric[dbmanager.pf_metric_collection_manager.PFMetricCollectionManager.final_getAppIdLabel()]
-        
-        if appId_metricId_map.get((int(appId),  int(metricId, 16))) is None:
-            continue
-        
-        #metricDataLst is a list.
-        metricDataLst = metric.get(dbmanager.pf_metric_collection_manager.PFMetricCollectionManager.final_getMetricDataLabel())
-        if metricDataLst is not None and len(metricDataLst) > 0:
-            if foreign_tuple_lst is not None and (appId,  metricId) in foreign_tuple_lst:
-                if userInfoMap[uid].get('foreign_key_list') is None:
-                    userInfoMap[uid]['foreign_key_list'] = {}
-                '''forgien key must is this format: 
-                    { metric_data: [
-                        {"ZTE N807" : "xxx"
-                         "ZTE N808" : "xxx"
-                        } #only one element in metric_data!
-                      ],
-                    }
-                    metric_data must have only one map element; each key of map is the foreign key of referenced collection.
-                    "ZTE N807" is foreign key, which is _id or doc key of referenced collection.
-                    One uid may be referenced more than one foreign keys, such as package_name, so result is a list.
-                '''
-                
-                reference_data_map = metricDataLst[0]
-                sortedTuple = sorted(reference_data_map.items(),  key=lambda d:d[1], reverse = True)
-                i = 0
-                tops = 30
-                appLst = []
-                if tops > len(sortedTuple):
-                    tops = len(sortedTuple)
-                while i <= tops - 1:
-                    appLst.append(sortedTuple[i][0])
-                    i += 1
-                #Fixed me. should get top 10 foreign key from list.
-                #Because some foreign key likd package name, will be much than expecting.
-                userInfoMap[uid]['foreign_key_list'][(appId,  metricId)] = list(appLst)
-            else:
-                # foreign data can not be inserted , because, it maybe contains more than one foreign keys.
-                # foreign data will be consisted as "model_1_1:[{}] after calc_profile() function later.
-                                
-                if uidMap[uid].get((appId,  metricId)) is None:
-                    uidMap[uid][(appId,  metricId)] = []
-                uidMap[uid][(appId,  metricId)].extend(metricDataLst)
-                        
-    #uidMap is immidiate struct.
-    # uidMap contains all uid metric data, key is uid, value is a map which key is (appid, metricid), value is array of metric data.
-    ''' 
-    {
-        uid1:{
-            (appid, metricid): [
-                {'timestamp':123456, 'strdesc': 10}, 
-                {'timestamp':876543, 'strdesc': 11}]}, 
-            (appid, metricid):[
-            ], 
-        uid2:{
-        }
-        ......
-    }    
-    '''        
-    
-    #libs.util.logger.Logger.getInstance().debugLog("total num is: %s ." % total_device_count)
-    #libs.util.logger.Logger.getInstance().debugLog("recordTime time is: %s ." % recordTime.getEllapsedTime()) 
-    #libs.util.logger.Logger.getInstance().debugLog("total time of part1 is: %.3fs ." % part1_total_duration)
-    #libs.util.logger.Logger.getInstance().debugLog("total time of part2 is: %.3fs ." % part2_total_duration)
-    return (uidMap, userInfoMap)
+    return buildMetricData(manager, [[cur, ],], appId_metricId_map, foreign_tuple_lst, 1)
 
 def calc_profile(uidMap,  tops = 3): 
     '''

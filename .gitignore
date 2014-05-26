@@ -2,3 +2,4 @@
 .project
 .pydevproject
 /python_log
+/.settings

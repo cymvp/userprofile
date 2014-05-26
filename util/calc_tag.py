@@ -144,23 +144,11 @@ def calc_tags(manager, cur,  tagLst, tagObjectLst):
 
 
 def calc_tags_old(manager,  tagLst):
-    '''result is:
-    { uid1:[  
-               {'tagid1':123, 'name': n880e, 'category': model},  
-               {'tagid2':456, 'name': n880e, 'category': model}  
-        ] ,
-     uid2:[
-        ] , 
-     ......
-    }'''
     tagMap = {} 
     userInfoMap = {}
     g_total_num = 0
     
     part1_total_duration = 0
-    part2_total_duration = 0
-    part3_total_duration = 0
-    part4_total_duration = 0
     
     recordTime = libs.util.my_utils.RecordTime()
     recordTime.startTime()
@@ -184,8 +172,6 @@ def calc_tags_old(manager,  tagLst):
     
     max_count = get_actural_count(profileCursors.count(), PERFORMANCE_DEVICE_TAG_COUNT)
     
-    
-    
     #for each user profile doc; cur is user doc.
     for cur in profileCursors:
         #till here, Performance: 4000/0.54s on PC.
@@ -197,116 +183,14 @@ def calc_tags_old(manager,  tagLst):
         #Fixed me!!!!!!
         if g_total_num > max_count:
             break
-        
-        #uid must not be None, and the key must existed.
         uid = cur[PFCollectionManager.final_getUidLabel()]
-        #libs.util.logger.Logger.getInstance().debugLog("In Calculating tags, uid is %s" % uid)
-        '''userInfoMap is: 
-           {
-               uid1:{
-                   cuid:xxx, 
-                   imei:xxx, 
-                   abondonTagList: [
-                       {category:xxx, uniquename:xxx, _id:xxx}
-                       {category:xxx, uniquename:xxx, _id:xxx}
-                   ]
-               }
-               uid2:{
-                  cuid:xxx, 
-                  imei:xxx, 
-                  abondonTagList: [
-                       {category:xxx, uniquename:xxx, _id:xxx}
-                       {category:xxx, uniquename:xxx, _id:xxx}
-                   ]
-               }
-           }
-        '''
-        userInfoMap[uid] = manager.getMetaInfo(cur)  
-        #Get the existed profile tags by certain cur.
-        oldTagLst = manager.getTagsByCur(cur)
-        newTagLst = []
-        #abandonLst contains all tags which is old, not existed in user profile for certain uid. 
-        abandonLst = []
+        uid_tag_map, uid_info_map =  calc_tags(manager, cur,  tagLst, tagObjectLst)
+        tagMap[uid] = uid_tag_map[uid]
+        userInfoMap[uid] = uid_info_map[uid]
 
-        if tagMap.get(uid) is None:
-            tagMap[uid] = []
-        
-        #till here, Performance: 4000/0.03s on PC.
-        part2_total_duration += recordTime.getEllaspedTimeSinceLast()
-        
-        # For each metric data in user profile doc. item is name of column, which in user doc.
-        for item in cur:
-            appIdMetricId = ubc.pf_metric_handle_general.PFMetricHandler_Appid_Metricid.final_getAppIdMetricId(item)
-            if appIdMetricId is None:
-                #item name is not like: xxx_4096_1807:
-                continue
-            appId,  metricId = appIdMetricId  
-            metricHandler = ubc.pf_metric_helper.getMetricHandler(metricId,  appId)
-            #mapObjectLst is a list, which contains several tag object; it may include different category tags.
-            #mapObjectLst = None
-            mapObjectLst = metricHandler.calculateTag(cur[item],  tagObjectLst)
-            #mapObjectLst = calculateTag(metricHandler, cur[item], tagObjectLst, metricId,  appId, recordTime)
-            # if mapObjectLst is None, it means that this metric dont't convert it to tag.
-            if mapObjectLst is not None and len(mapObjectLst) > 0:
-                if isinstance(mapObjectLst,  list) == False:
-                    raise util.pf_exception.PFExceptionFormat    
-                for tg in mapObjectLst:
-                    #pass
-                    #newTagLst is sub collection of all tag collection, so all of newTagLst is newest.
-                    strTag = dbmanager.pf_tags_collection_manager.PFTagsCollectionManager.final_buildTagMap(tg)
-                    newTagLst.append(strTag)
-        #till here, Performance: 4000/0.076s on PC.
-        part3_total_duration += recordTime.getEllaspedTimeSinceLast()
-        #till here, Performance: 4000/0.69s on PC.
-        #linked_list = manager.get_linked_tag(uid)
-        linked_list = manager.final_get_linked_tag(cur) 
-        part4_total_duration += recordTime.getEllaspedTimeSinceLast()
-        if linked_list is not None and len(linked_list) > 0:
-            newTagLst.extend(linked_list)
-            
-        #Merge old and new tag list; old tag list is from current user profile document, new tag list is from calculating by metric data.                          
-        newTagLst, oldAvailableLst, oldOtherLst = __pickTag(oldTagLst,  newTagLst)
-        
-        #overlapLst is newest tag data which are set by tagLst.
-        #oldUpdateLst is the tag list, which id of tag is changed.
-        #oldUselessLst is the tag list, which tag is not valid anymore. 
-        #overlapLst contains oldUpdateLst, which are still valid tag but tag id is changed.
-        overlapLst, oldUpdateLst, oldUselessLst = findOverlapData(oldAvailableLst, tagLst)
-        
-        #oldPickedLst is final all(and data is newest) that selected from oldLst.
-        oldPickedLst = []
-        oldPickedLst.extend(oldOtherLst)
-        oldPickedLst.extend(overlapLst)
-        
-        #L1 should equal oldPickedLst, L2 should equal oldUpdateLst, L3 is all of unselected, including in process of select tag,
-        #in process of useless tag compared by tagLst; but not including need update tags.
-        L1, L2, L3 = findOverlapData(oldTagLst, oldPickedLst)
-        
-        newTagLst.extend(oldPickedLst)
-        
-        #20140427: newTagLst can just contains total new tag list and 
-        #tags which is in old tag list but tag id is changed.
-        #But when update user profile, it need total tag list,so we use whole valid tag list.
-        #newTagLst.extend(oldUpdateLst)
-        
-        abandonLst.extend(oldUpdateLst)
-        abandonLst.extend(L3)
-        
-        userInfoMap[uid]['abondonTagList'] = abandonLst
-                   
-        tagMap[uid].extend(newTagLst)
-        
-        part4_total_duration += recordTime.getEllaspedTimeSinceLast()
-        
     libs.util.logger.Logger.getInstance().debugLog("total num is: %s ." % g_total_num)
     libs.util.logger.Logger.getInstance().debugLog("recordTime time is: %s ." % recordTime.getEllapsedTime()) 
     libs.util.logger.Logger.getInstance().debugLog("total time of part1 is: %.3fs ." % part1_total_duration)
-    libs.util.logger.Logger.getInstance().debugLog("total time of part2 is: %.3fs ." % part2_total_duration)
-    libs.util.logger.Logger.getInstance().debugLog("total time of part3 is: %.3fs ." % part3_total_duration)
-    libs.util.logger.Logger.getInstance().debugLog("total time of part4 is: %.3fs ." % part4_total_duration)
-    
-    for i in temp_map:
-        print(str(i) + ': ' + str(temp_map[i]))
         
     return (tagMap, userInfoMap)
           

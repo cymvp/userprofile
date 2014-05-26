@@ -29,8 +29,7 @@ class RecordTime:
         self.mStartTime = time.time()
         self.mLastTime = self.mStartTime
     def getEllapsedTime(self):
-        self.mLastTime = time.time()
-        return self.mLastTime - self.mStartTime
+        return time.time() - self.mStartTime
     def getEllaspedTimeSinceLast(self):
         last_time = self.mLastTime
         self.mLastTime = time.time()
