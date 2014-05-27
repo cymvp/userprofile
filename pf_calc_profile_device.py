@@ -35,8 +35,8 @@ def consist_of_foreign_data(key_list, foreign_tuple, collection_name, old_linked
     old_linked_node = old_linked_node_map.get(foreign_label)
     #Fix me. hard code about app collection key doc.
     if old_linked_node is not None and old_linked_node.get('linked_list') is not None:
-        if app_id == '1' and metric_id == '0x03':
-            key_list.append(old_linked_node)
+        if app_id == '1' and metric_id == '0x3':
+            key_list.extend(old_linked_node.get('linked_list'))
             key_list = list(set(key_list))
     l = len(key_list)
     if l > 20:

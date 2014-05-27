@@ -176,20 +176,20 @@ def buildMetricData(manager,  cursorLst, appId_metricId_map, foreign_tuple_lst =
                 if appId_metricId_map.get((int(appId),  int(metricId, 16))) is None:
                     continue
                 
-                #metricDataLst is a list.
+                #metricDataLst is a list for certain metric.
                 metricDataLst = metric.get(dbmanager.pf_metric_collection_manager.PFMetricCollectionManager.final_getMetricDataLabel())
                 if metricDataLst is not None and len(metricDataLst) > 0:
                     if foreign_tuple_lst is not None and (appId,  metricId) in foreign_tuple_lst:
                         if userInfoMap[uid].get('foreign_key_list') is None:
                             userInfoMap[uid]['foreign_key_list'] = {}
                         '''forgien key must is this format: 
-                            { metric_data: [
+                            { (1,0x1): [
                                 {"ZTE N807" : "xxx"
                                  "ZTE N808" : "xxx"
                                 } #only one element in metric_data!
-                              ],
+                              ]
                             }
-                            metric_data must have only one map element; each key of map is the foreign key of referenced collection.
+                            metric_data must have only one element, it is a map; each key of map is the foreign key of referenced collection.
                             "ZTE N807" is foreign key, which is _id or doc key of referenced collection.
                             One uid may be referenced more than one foreign keys, such as package_name, so result is a list.
                         '''
@@ -275,7 +275,7 @@ def calc_profile(uidMap,  tops = 3):
         uid2:{
         }, 
         ......
-      }'''
+    }'''
     resultMap = {}
     #Get each uid from metrics_collection immediate struct.
     for uid in uidMap:
@@ -302,15 +302,16 @@ def calc_profile(uidMap,  tops = 3):
                 #dataMap is a map which key is like 'location' and so on,  value is a list(array) of map which is calculated by some stat.
                 #Overwrite k-v of user doc.
                 resultMap[uid][next(dataMap.keys().__iter__())] = next(dataMap.values().__iter__())
-                
+                #One metric generates only one sub doc, means dataMap is only one elements.
                 '''
                 dataMap is:
-                 deviceinfo_4096_7d3: [{
+                  {deviceinfo_4096_7d3: [{
                             RAM:''
                             ROM:''
                             resolution:''
                             android_os: '4.1'
-                        }],
+                        }]
+                   }#dataMap is only one element.
                 '''
     return resultMap
 
