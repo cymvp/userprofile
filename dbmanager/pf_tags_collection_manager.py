@@ -14,6 +14,11 @@ class PFTagsCollectionManager(PFCollectionManager):
     def __getCollectionName__(self,   params = None):
         return PFTagsCollectionManager.__COLLCETION_PREFIX
     
+    def save(self, cur, collection = None): 
+        if collection is None:
+            collection = self.mDBManager.getCollection(self.__getCollectionName__())
+        self.mDBManager.save(cur,  collection)
+    
     def insertOrUpdateCollection(self, tag, collection = None):
         if collection is None:
             collection = self.mDBManager.getCollection(self.__getCollectionName__())
@@ -25,7 +30,7 @@ class PFTagsCollectionManager(PFCollectionManager):
             tag.setCreateTime(util.utils.getStrCurrentTime())
         
         m = PFTagsCollectionManager.final_buildTagMap(tag, False)
-        self.mDBManager.insert(m,  collection)
+        self.mDBManager.save(m,  collection)
         
     @staticmethod
     def final_SlimTag(tagMap):

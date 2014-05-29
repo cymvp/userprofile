@@ -342,7 +342,50 @@ class PFMetricHandler_1_4(PFMetricHandler_Appid_Metricid):
 
     def calculateTag(self,  lines,  tagLst):
         return None    
- 
+
+#Handle App Tags.
+class PFMetricHandler_2_1(PFMetricHandler_Appid_Metricid):
+    
+    __PROFILE_METRIC_LABEL__ = 'package_name'
+
+    def calculateTag(self,  lines,  tagLst):
+        resultLst = []
+        super(PFMetricHandler_2_1,  self).calculateTag(lines,  tagLst)
+        '''
+         package_name_1_3: [
+            "com.baidu.BaiduMap"
+        ]
+        '''
+        if len(lines) < 0:
+            return None  
+        info_map = lines[-1]
+        
+        for k in info_map:
+            category_name = None
+            #k应该是tag的category_name,而value应该是具体的unique_name.
+            if k == 'app_type':
+                category_name = k
+                tgs = tags.pf_tag_helpers.PFTagsHelper.final_getTagLstByCategory(tagLst, category_name)
+                for tg in tgs:
+                    if tg.isFitTag(info_map[k]) :
+                        resultLst.append(tg)    
+            elif k == info_map['app_type'] + '_' + 'category':
+                category_name = k
+            #elif k =='category':
+                #category_name = info_map['type'] + '_' + k #'game_category or app_category'
+                tgs = tags.pf_tag_helpers.PFTagsHelper.final_getTagLstByCategory(tagLst, category_name)
+                for unique_name in info_map[k]:
+                    for tg in tgs:
+                        if tg.isFitTag(unique_name) :
+                            resultLst.append(tg)
+            elif k == 'gender':
+                category_name = k
+                tgs = tags.pf_tag_helpers.PFTagsHelper.final_getTagLstByCategory(tagLst, category_name)
+                for tg in tgs:
+                    if tg.isFitTag(info_map[k]) :
+                        resultLst.append(tg)  
+        return resultLst  
+
            
 class PFMetricHandler_4096_7d3(PFMetricHandler_Appid_Metricid):
     

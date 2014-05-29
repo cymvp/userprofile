@@ -39,6 +39,15 @@ class PFDBManager:
 
     def getCollection(self, collectionName): 
         return self.__mDB[collectionName]
+    
+    def save(self, doc, collection):
+        self.__checkStatus(collection)
+        try:
+            collection.save(doc)
+        except (pymongo.errors.TimeoutError,  pymongo.errors.AutoReconnect) as e:
+            self.__resetDBStatus()
+            self.__reportExcept(e)
+            raise util.pf_exception.PFExceptionWrongStatus
         
     def find(self,  dictQuery,  collection, include_fields = None):
         self.__checkStatus(collection)

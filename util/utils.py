@@ -210,7 +210,7 @@ def buildMetricData(manager,  cursorLst, appId_metricId_map, foreign_tuple_lst =
                     else:
                         # foreign data can not be inserted , because, it maybe contains more than one foreign keys.
                         # foreign data will be consisted as "model_1_1:[{}] after calc_profile() function later.
-                        print("Error!Can not run to here!")                
+                        #print("Error!Can not run to here!")                
                         if uidMap[uid].get((appId,  metricId)) is None:
                             uidMap[uid][(appId,  metricId)] = []
                         uidMap[uid][(appId,  metricId)].extend(metricDataLst)

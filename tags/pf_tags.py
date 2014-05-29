@@ -168,6 +168,38 @@ class PFTags_province(PFTags_category):
             return True
         return False 
 
+class PFTags_app_type(PFTags_category):
+    #override
+    def isFitCategory(self, param):
+        str_tag_value = self.mTag.getUniqueName()
+        if str_tag_value == param:
+            return True
+        return False
+   
+class PFTags_game_category(PFTags_category):
+    #override
+    def isFitCategory(self, param):
+        str_tag_value = self.mTag.getUniqueName()
+        if str_tag_value in param or param in str_tag_value:
+            return True
+        return False
+
+class PFTags_app_category(PFTags_category):
+    #override
+    def isFitCategory(self, param):
+        str_tag_value = self.mTag.getUniqueName()
+        if str_tag_value in param or param in str_tag_value:
+            return True
+        return False
+
+class PFTags_app_gender(PFTags_category):
+    #override
+    def isFitCategory(self, param):
+        str_tag_value = self.mTag.getUniqueName()
+        if str_tag_value == param:
+            return True
+        return False   
+
 #should name PFTags_Category_UnigueName, extend PFTags_tag, extend PFTags.  
 #class PFTags_memory_512(PFTags_tag):
 #def isFitTag(self,  param):

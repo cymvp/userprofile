@@ -12,6 +12,7 @@ class Singleton(object):
 class PFCollectionManager(Singleton):
     cache_cursors = None
     cache_data = {}
+    cache_data_map = {}
     
     #Override
     def __init__(self):
@@ -105,13 +106,16 @@ class PFCollectionManager(Singleton):
         #Example: device collection calls this function of app collection to get tag list of app.
         #uid is the doc _id of app collection. 
         target_tag_list = []
+        target_tag_map = {}
         cursors = None     
         uid_tag_list = self.__class__.cache_data.get(uid)
         if uid_tag_list is None:
             if self.__class__.cache_cursors == None:
                 cursors = self.getAllDoc()
-            if cursors is None:
-                return []
+                if cursors is None:
+                    return []
+            else:
+                cursors = self.__class__.cache_cursors
             self.__class__.cache_cursors = cursors  
             for cur in cursors:                
                 _id = cur[self.__class__.final_getUidLabel()]
@@ -120,11 +124,15 @@ class PFCollectionManager(Singleton):
                 if _id == uid:
                     if cur.get(self.__class__.final_getProfileTagLabel()) is not None:
                         target_tag_list = cur.get(self.__class__.final_getProfileTagLabel())
+                        for tg in target_tag_list:   
+                            target_tag_map[tg[self.__class__.final_getUidLabel()]] = 1
                     break
             #Whatever found it or not, we save uid into __cached_data, and not found will return empty [].
             self.__class__.cache_data[uid] = target_tag_list
+            self.__class__.cache_data_map[uid] = target_tag_map
         else:
             target_tag_list = uid_tag_list
+            target_tag_map = self.__class__.cache_data_map.get(uid)
         
         return target_tag_list
 

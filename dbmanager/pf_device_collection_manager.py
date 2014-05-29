@@ -90,6 +90,7 @@ class PFDeviceCollectionManager(PFCollectionManager):
     def __get_tag_from_collection__(collection_name, key_list):
         collection_manager = None
         tag_list = []
+        tag_id_map = {}
         if collection_name == PFHWVCollectionManager.getCollectionName():
             collection_manager = PFHWVCollectionManager()
         if collection_name == PFProvinceCollectionManager.getCollectionName():
@@ -100,5 +101,9 @@ class PFDeviceCollectionManager(PFCollectionManager):
             collection_manager = PFDeviceCollectionManager()
         for k in key_list:
             tg_list = collection_manager.__final_getTagsByUidWithCache__(k)
-            tag_list.extend(tg_list)
+            for tg in tg_list:
+                tag_id = tg.get(collection_manager.final_getUidLabel())
+                if tag_id_map.get(tag_id) is None:
+                    tag_list.append(tg)
+                    tag_id_map[tag_id] = 1
         return tag_list

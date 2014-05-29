@@ -24,7 +24,9 @@ if __name__ == "__main__":
         t.setName(arr[2])
         t.setCategory(arr[0])
         t.setUniqueName(arr[1])
+        t.setId(arr[0] + arr[1])
         tag_list.append(t)
         
     for t in tag_list:
         tagManager.insertOrUpdateCollection(t)
+    print('.')
