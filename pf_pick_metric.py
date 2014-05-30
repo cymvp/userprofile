@@ -69,11 +69,7 @@ def __convert_appid_metricid(arr, appid, metricid):
 if __name__ == "__main__":
     
     fInputFile = None
-    
-    print('a')
-    
-    sys.exit(1)
-        
+     
     metricCollectionManager = PFMetricCollectionManager()
     g_hwvCollectionManager = PFHWVCollectionManager()
     
@@ -103,7 +99,7 @@ if __name__ == "__main__":
         
         total_line += 1
         
-        if total_line % 10000 == 0:
+        if total_line % 1000 == 0:
             libs.util.logger.Logger.getInstance().debugLog("Processed: %d lines." % total_line)
             if total_line > 500000000:
                 total_line = 1
@@ -191,38 +187,25 @@ if __name__ == "__main__":
                     metricid_lst.append(metric_id)
                     value_map_lst.append(valueMap)
                 
-        writeSuccess = False
-        while writeSuccess != True:      
-            if value_map_lst is not None:
-                uid = util.utils.getUid(line)
-                imei = util.utils.getIMEI(line)         
-                #Add CUID on 20140425.
-                cuid = util.utils.getCUID(line)
-                if g_last_uid == '':
-                    g_last_uid = uid
-                    g_last_imei = imei
-                    g_last_cuid = cuid
-                    g_last_metric_data_list = []
-                if g_last_uid == uid:
-                    i = 0
-                    while i < len(metricid_lst):
-                        metricId = metricid_lst[i]
-                        appId = appid_lst[i]
-                        valueMap = value_map_lst[i]
-                        metric_map = metricCollectionManager.isMetricExist(g_last_metric_data_list, metricId, appId)
-                        if metric_map is None:
-                            metric_map = metricCollectionManager.get_metric_data_list(uid, appId, metricId)
-                            if metric_map is None:
-                                metric_map = metricCollectionManager.buildsubDocMetric(metricId,  appId)
-                            #userMap[PFMetricCollectionManager.final_getMetricsLabel()].append(metricMap)
-                        g_last_metric_data_list.append(metric_map)
-                        
-                        metricHandler = ubc.pf_metric_helper.getMetricHandler('%x'% int(metricId, 16),  str(appId)) # hex(metricId)[2:]
-                        metric_map[PFMetricCollectionManager.final_getMetricDataLabel()] = metricHandler.handle_raw_data(metric_map[PFMetricCollectionManager.final_getMetricDataLabel()], valueMap) 
-                        
-                        i += 1
-                    writeSuccess = True
-                else:
+        if value_map_lst is not None:
+            uid = util.utils.getUid(line)
+            imei = util.utils.getIMEI(line)         
+            #Add CUID on 20140425.
+            cuid = util.utils.getCUID(line)
+    
+            # g_last_uid is empty only if the uid is the first uid..
+            #if g_last_uid == '':
+            #    g_last_uid = uid
+                #g_last_imei = imei
+                #g_last_cuid = cuid
+                #g_last_metric_data_list = []
+            
+            if g_last_uid == '':
+                g_last_uid = uid
+            
+            if g_last_uid != uid:
+                writeSuccess = False
+                while writeSuccess != True:      
                     try:
                         pass
                         #libs.util.logger.Logger.getInstance().debugLog(line)
@@ -240,8 +223,23 @@ if __name__ == "__main__":
                         g_last_cuid = cuid
                         g_last_uid = uid
                         g_last_metric_data_list = []
-
                 
-            
-
-
+            i = 0
+            while i < len(metricid_lst):
+                metricId = metricid_lst[i]
+                appId = appid_lst[i]
+                valueMap = value_map_lst[i]
+                metric_map = metricCollectionManager.isMetricExist(g_last_metric_data_list, metricId, appId)
+                if metric_map is None:
+                    metric_map = metricCollectionManager.get_metric_data_list(uid, appId, metricId)
+                    if metric_map is None:
+                        metric_map = metricCollectionManager.buildsubDocMetric(metricId,  appId)
+                    #userMap[PFMetricCollectionManager.final_getMetricsLabel()].append(metricMap)
+                    
+                metricHandler = ubc.pf_metric_helper.getMetricHandler('%x'% int(metricId, 16),  str(appId)) # hex(metricId)[2:]
+                metric_map[PFMetricCollectionManager.final_getMetricDataLabel()] = metricHandler.handle_raw_data(metric_map[PFMetricCollectionManager.final_getMetricDataLabel()], valueMap) 
+                
+                g_last_metric_data_list.append(metric_map)
+                
+                i += 1
+                    

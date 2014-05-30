@@ -192,13 +192,29 @@ class PFTags_app_category(PFTags_category):
             return True
         return False
 
-class PFTags_app_gender(PFTags_category):
+class PFTags_gender(PFTags_category):
     #override
     def isFitCategory(self, param):
         str_tag_value = self.mTag.getUniqueName()
         if str_tag_value == param:
             return True
-        return False   
+        return False
+
+class PFTags_operationchannel(PFTags_category):
+    #override
+    def isFitCategory(self, param):
+        str_tag_value = self.mTag.getUniqueName()
+        if str_tag_value == param:
+            return True
+        return False  
+
+class PFTags_operationversion(PFTags_category):
+    #override
+    def isFitCategory(self, param):
+        str_tag_value = self.mTag.getUniqueName()
+        if str_tag_value == param:
+            return True
+        return False  
 
 #should name PFTags_Category_UnigueName, extend PFTags_tag, extend PFTags.  
 #class PFTags_memory_512(PFTags_tag):

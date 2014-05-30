@@ -83,3 +83,11 @@ app_category,美化,美化
 app_category,生活,生活
 app_category,主题,主题
 app_category,壁纸,壁纸
+operationchannel,2000000,ROM
+operationchannel,2010000,一键root
+operationchannel,2020000,Wifi福利社
+operationchannel,2030000,游戏中心
+operationchannel,2030001,游戏中心-阅丰
+operationchannel,2030002,游戏中心-100C
+operationchannel,2050000,桌面-独立发版
+operationchannel,2050001,桌面-轻刷机

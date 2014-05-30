@@ -664,18 +664,20 @@ class PFMetricHandler_36864_1808(PFMetricHandler_Appid_Metricid):
         resultLst = []
         if lines is None or len(lines) == 0:
             return None
-        categoryName = 'operationchannel'
         line = lines[-1]
+        
+        categoryName = 'operationversion'
         version = line.get('version')
         tgs = tags.pf_tag_helpers.PFTagsHelper.final_getTagLstByCategory(tagLst, categoryName)
-        while i < l:
-            line = lines[i]
-            t = next(line.__iter__())
-            for tg in tgs:
-                if tg.isFitTag(t) :
-                    resultLst.append(tg)
-            i += 1
-                
+        for tg in tgs:
+            if tg.isFitTag(version):
+                resultLst.append(tg)
+        categoryName = 'operationchannel'
+        version = line.get('channel')
+        tgs = tags.pf_tag_helpers.PFTagsHelper.final_getTagLstByCategory(tagLst, categoryName)
+        for tg in tgs:
+            if tg.isFitTag(version):
+                resultLst.append(tg)
         return resultLst       
         
         
