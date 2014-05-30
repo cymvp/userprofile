@@ -639,6 +639,43 @@ class PFMetricHandler_4096_640(PFMetricHandler_Appid_Metricid):
             '''
         return {self.__getProfileMetricLabel__('content_query'): resultLst}   
 
-        
+#Handle channel & version of operation 
+class PFMetricHandler_36864_1808(PFMetricHandler_Appid_Metricid):
+    
+    def calculateProfile(self,  lines,  tops = 3):
+        '''
+        map.items(): {x:y, z:z1, m:n} => [{x:y}, {z:z1}, {m:n}]
+        map.items() also like sortedTuple: a list which elements are map. Each k-v pair in map is the element in list.
+        sortedTuple is as: [{}, {}]   
+        '''
+        result_lst = sorted(lines, key=lambda d:d['timestamp'], reverse = True)
+
+        return {self.__getProfileMetricLabel__('operation'): result_lst}  
+    
+    def handle_raw_data(self, metric_data_lst, value_map):
+        for line in metric_data_lst:
+            if line.get('version') == value_map.get('version'):
+                return metric_data_lst
+        metric_data_lst.append(value_map) 
+        return metric_data_lst
+
+    def calculateTag(self,  lines,  tagLst):
+        super(PFMetricHandler_36864_1808,  self).calculateTag(lines,  tagLst)
+        resultLst = []
+        if lines is None or len(lines) == 0:
+            return None
+        categoryName = 'operationchannel'
+        line = lines[-1]
+        version = line.get('version')
+        tgs = tags.pf_tag_helpers.PFTagsHelper.final_getTagLstByCategory(tagLst, categoryName)
+        while i < l:
+            line = lines[i]
+            t = next(line.__iter__())
+            for tg in tgs:
+                if tg.isFitTag(t) :
+                    resultLst.append(tg)
+            i += 1
+                
+        return resultLst       
         
         

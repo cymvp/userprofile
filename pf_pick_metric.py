@@ -125,21 +125,7 @@ if __name__ == "__main__":
 
         '''tupl is ((4096,0x1807), { time:"2013-06-07 15:34:22", field_1:"value", field_2:"value" }) '''
         
-        arr = line.strip().split(',')
-           
-        if app_id == '36864':
-            raw_metric_id = metric_id
-            #model
-            __convert_appid_metricid(arr, '1', '0x1')
-            tupl = handle_data(arr,  metricMap)
-            if tupl is not None:
-                appid_metricid, valueMap = tupl
-                app_id = appid_metricid[0]
-                metric_id = appid_metricid[1]
-                appid_lst.append(app_id)
-                metricid_lst.append(metric_id)
-                value_map_lst.append(valueMap)
-                
+        arr = line.strip().split(',')                
                 
         #Parse raw data.
         tupl = handle_data(arr,  metricMap)   
