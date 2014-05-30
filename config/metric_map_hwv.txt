@@ -1,0 +1,3 @@
+1,1,0,string,6,string,model
+4096,7d3,0,int,8,int,timestamp
+4096,7d3,1,string,13,string,deviceinfo

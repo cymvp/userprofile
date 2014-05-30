@@ -1,0 +1,3 @@
+4096,7d2,0,int,8,int,timestamp
+4096,7d2,1,string,13,string,account_list
+1,4,0,string,2,string,deviceid
