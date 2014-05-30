@@ -3,3 +3,4 @@
 .pydevproject
 /python_log
 /.settings
+*.bak
