@@ -40,7 +40,7 @@ if __name__ == "__main__":  # python3 import_raw_data.py chunlei_ubc_data_201404
     #Logger.getInstance().setDirectToFile(False)
     
     libs.util.logger.Logger.getInstance().setLogFilePrefixName('')
-    libs.util.logger.Logger.getInstance().setLogFileSurfixName('importdata')
+    libs.util.logger.Logger.getInstance().setLogFileSurfixName('_importdata')
 
     
     if len(sys.argv) != 3:

@@ -17,7 +17,7 @@ def __get_devices_by_tag(tag_manager, device_manager, total_tag_map):
     total_device_count = 0
     
     libs.util.logger.Logger.getInstance().setLogFilePrefixName('')
-    libs.util.logger.Logger.getInstance().setLogFileSurfixName('tag_uids')
+    libs.util.logger.Logger.getInstance().setLogFileSurfixName('_tag_uids')
     
     device_cursors = device_manager.getAllDoc()
     max_count = get_actural_count(device_cursors.count(), PERFORMANCE_DEVICE_COUNT)

@@ -179,7 +179,7 @@ if __name__ == "__main__":
         sys.exit(1)
     
     libs.util.logger.Logger.getInstance().setLogFilePrefixName('')
-    libs.util.logger.Logger.getInstance().setLogFileSurfixName('account')
+    libs.util.logger.Logger.getInstance().setLogFileSurfixName('_account')
     
     g_foreign_tuple_list = [('1', '0x4')]
     g_foreign_collection_map = {g_foreign_tuple_list[0]: PFDeviceCollectionManager.getCollectionName()}

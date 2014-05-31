@@ -40,7 +40,7 @@ if __name__ == "__main__":
         sys.exit(1)
     
     libs.util.logger.Logger.getInstance().setLogFilePrefixName('')
-    libs.util.logger.Logger.getInstance().setLogFileSurfixName(sys.argv[3])
+    libs.util.logger.Logger.getInstance().setLogFileSurfixName('_linked_info')
         
     part1_total_duration = 0
     part2_total_duration = 0

@@ -52,7 +52,7 @@ if __name__ == "__main__":  # nDays,  mTop
     i = 0
     
     libs.util.logger.Logger.getInstance().setLogFilePrefixName('')
-    libs.util.logger.Logger.getInstance().setLogFileSurfixName('device')
+    libs.util.logger.Logger.getInstance().setLogFileSurfixName('_device')
     
     write_thread_obj = write_thread()
     write_thread_obj.start()

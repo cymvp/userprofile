@@ -80,6 +80,6 @@ class Logger:
         return Logger.class_Instance
     
 #Logger.getInstance().setDirectToFile(False)    
-Logger.getInstance().debugLog("Im am zhangyali!!!!!!")
+#Logger.getInstance().debugLog("Im am zhangyali!!!!!!")
 #Logger.getInstance().setDirectToFile(False)
     
