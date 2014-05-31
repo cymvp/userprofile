@@ -42,14 +42,18 @@ def consist_of_foreign_data(key_list, foreign_tuple, collection_name, old_linked
     if l > 20:
         l = 20
     return {foreign_label:{'linked_collection' : collection_name, 'linked_list' : key_list[0: l]}}
-
+'''
 def func(i, j):
     time.sleep(5)
     print(i)
     print(j)
-
+'''
 if __name__ == "__main__":  # nDays,  mTop
     i = 0
+    
+    libs.util.logger.Logger.getInstance().setLogFilePrefixName('')
+    libs.util.logger.Logger.getInstance().setLogFileSurfixName('device')
+    
     write_thread_obj = write_thread()
     write_thread_obj.start()
     

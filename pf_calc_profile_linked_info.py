@@ -38,6 +38,9 @@ if __name__ == "__main__":
     if len(sys.argv) != 4:
         print("Error params...... python pf_calc_profile.py nDays, mTop, ./config/metric_map_app.txt")
         sys.exit(1)
+    
+    libs.util.logger.Logger.getInstance().setLogFilePrefixName('')
+    libs.util.logger.Logger.getInstance().setLogFileSurfixName(sys.argv[3])
         
     part1_total_duration = 0
     part2_total_duration = 0

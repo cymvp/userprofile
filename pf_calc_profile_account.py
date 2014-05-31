@@ -178,6 +178,9 @@ if __name__ == "__main__":
         print("Error params...... python pf_calc_profile.py nDays, mTop, metric_map_account.txt ")
         sys.exit(1)
     
+    libs.util.logger.Logger.getInstance().setLogFilePrefixName('')
+    libs.util.logger.Logger.getInstance().setLogFileSurfixName('account')
+    
     g_foreign_tuple_list = [('1', '0x4')]
     g_foreign_collection_map = {g_foreign_tuple_list[0]: PFDeviceCollectionManager.getCollectionName()}
     

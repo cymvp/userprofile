@@ -13,7 +13,15 @@ class Logger:
         self.__mDirectToFile = True
         self.__mLastDate = None
         self.__mLogFile = None
+        self.__mLogFilePrefix = 'log_'
+        self.__mLogFileSurfix = ''
         self.__tempBufferLine = 0
+    
+    def setLogFilePrefixName(self, str_prefix):
+        self.__mLogFilePrefix = str_prefix
+        
+    def setLogFileSurfixName(self, str_surfix):
+        self.__mLogFileSurfix = str_surfix
         
     def setDirectToFile(self, dirtectToFile = True):
         self.__mDirectToFile = dirtectToFile
@@ -49,7 +57,7 @@ class Logger:
             
     def __openLogFile(self, strDate): 
         self.__closeFile()
-        logStrFile = os.path.join(Logger.LOG_FILE_PATH, 'log_' + strDate) 
+        logStrFile = os.path.join(Logger.LOG_FILE_PATH, self.__mLogFilePrefix  + strDate + self.__mLogFileSurfix) 
         self.__mLastDate = strDate
         self.__mLogFile = open(logStrFile, 'a', 8192, "utf-8")
     

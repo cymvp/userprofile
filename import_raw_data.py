@@ -38,7 +38,11 @@ def handle_data(line,  metricMap):
 if __name__ == "__main__":  # python3 import_raw_data.py chunlei_ubc_data_20140430 metricmap.txt
     
     #Logger.getInstance().setDirectToFile(False)
+    
+    libs.util.logger.Logger.getInstance().setLogFilePrefixName('')
+    libs.util.logger.Logger.getInstance().setLogFileSurfixName('importdata')
 
+    
     if len(sys.argv) != 3:
         print(r'Error params...... python import_raw_data.py D:\mongodb\p_data\ubc_100 ./config/metric_map_metrics.txt')
         sys.exit(1)

@@ -68,6 +68,9 @@ def __convert_appid_metricid(arr, appid, metricid):
 
 if __name__ == "__main__":
     
+    libs.util.logger.Logger.getInstance().setLogFilePrefixName('')
+    libs.util.logger.Logger.getInstance().setLogFileSurfixName('pickmetric')
+
     fInputFile = None
      
     metricCollectionManager = PFMetricCollectionManager()
