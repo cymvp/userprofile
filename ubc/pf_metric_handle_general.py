@@ -137,6 +137,7 @@ class PFMetricHandler_4096_1807(PFMetricHandler_Appid_Metricid):
         #print(tops)
         #print(countMap)
         i = 0
+        tops = 10
         if tops > len(sortedTuple):
             tops = len(sortedTuple)
         while i <= tops - 1:

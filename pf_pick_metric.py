@@ -216,10 +216,19 @@ if __name__ == "__main__":
                         libs.util.logger.Logger.getInstance().errorLog('line can not be shown.')
                     try:
                         #metricCollectionManager.insertOrUpdateUser(g_last_uid,  g_last_cuid,  g_last_imei, metricid_lst,  appid_lst,  value_map_lst)
+                        #g_last_uid = "$123"
                         metricCollectionManager.insertOrUpdateUser(g_last_uid,  g_last_cuid,  g_last_imei,  g_last_metric_data_list)
+                        #raise util.pf_exception.PFExceptionWrongStatus()
                     except util.pf_exception.PFExceptionWrongStatus:
                         libs.util.logger.Logger.getInstance().errorLog('mongodb happened some error, wait reconnect......')
-                        time.sleep(3)
+                        time.sleep(10)
+                    except util.pf_exception.PFExceptionFormat:
+                        libs.util.logger.Logger.getInstance().errorLog('Format is Wrong: ' + ','.join([g_last_uid, str(g_last_metric_data_list)]))
+                        writeSuccess = True
+                        g_last_imei = imei
+                        g_last_cuid = cuid
+                        g_last_uid = uid
+                        g_last_metric_data_list = []
                     else:
                         writeSuccess = True
                         g_last_imei = imei

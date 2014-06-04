@@ -63,10 +63,12 @@ class PFDBManager:
         self.__checkStatus(collection)
         try:
             collection.insert(doc)
-        except (pymongo.errors.TimeoutError,  pymongo.errors.AutoReconnect, bson.errors.InvalidDocument) as e:
+        except (pymongo.errors.TimeoutError,  pymongo.errors.AutoReconnect) as e:
             self.__resetDBStatus()
             self.__reportExcept(e)
             raise util.pf_exception.PFExceptionWrongStatus
+        except bson.errors.InvalidDocument as e:
+            raise util.pf_exception.PFExceptionFormat
         
     def update(self,  doc,  newDoc,  collection):
         self.__checkStatus(collection)
