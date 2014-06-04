@@ -450,6 +450,8 @@ class PFMetricHandler_4096_7d5(PFMetricHandler_Appid_Metricid):
     def calculateProfile(self,  lines,  tops = 3):
         tempMap = {}
         for dataMap in lines:
+            if dataMap.get('gprs') is None or int(dataMap.get('gprs')) < 0 or dataMap.get('wifi') is None or int(dataMap.get('wifi')) < 0:
+                continue
             t = dataMap['timestamp']
             if tempMap.get(t) is None:
                 tempMap[t] = dataMap
