@@ -41,7 +41,17 @@ if __name__ == "__main__":  # python3 import_raw_data.py chunlei_ubc_data_201404
     
     libs.util.logger.Logger.getInstance().setLogFilePrefixName('')
     libs.util.logger.Logger.getInstance().setLogFileSurfixName('_importdata')
-
+       
+    part1_total_duration = 0
+    part2_total_duration = 0
+    part3_total_duration = 0
+    part4_total_duration = 0
+    part5_total_duration = 0
+    
+    recordTime = libs.util.my_utils.RecordTime()
+    printProcess = libs.util.my_utils.PrintProcess('')
+    
+    recordTime.startTime()
     
     if len(sys.argv) != 3:
         print(r'Error params...... python import_raw_data.py D:\mongodb\p_data\ubc_100 ./config/metric_map_metrics.txt')
@@ -65,6 +75,8 @@ if __name__ == "__main__":  # python3 import_raw_data.py chunlei_ubc_data_201404
     
     #lines = fInputFile.readlines()
     
+    recordTime.getEllaspedTimeSinceLast()
+    
     lineNumber = 0
     errorNumber = 0
     try:
@@ -81,9 +93,15 @@ if __name__ == "__main__":  # python3 import_raw_data.py chunlei_ubc_data_201404
         if errorNumber > 100:
             break;
         tupl = handle_data(line,  metricMap)
+        
+        part3_total_duration += recordTime.getEllaspedTimeSinceLast()
+        
         if tupl is None:
             continue
         res = redisManager.push(config.const.CONST_QUEUE_NAME[0], line)
+        
+        part4_total_duration += recordTime.getEllaspedTimeSinceLast()
+        
         #res = False
         if res == False:
             errorNumber += 1    

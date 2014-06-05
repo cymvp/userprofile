@@ -1,11 +1,27 @@
 import platform
 import redis
 from libs.util.logger import Logger
+import libs.util.my_utils
 from threading import Timer, RLock
 import time
+
+
+    
+part1_total_duration = 0
+part2_total_duration = 0
+part3_total_duration = 0
+part4_total_duration = 0
+part5_total_duration = 0
+
+recordTime = libs.util.my_utils.RecordTime()
+printProcess = libs.util.my_utils.PrintProcess('')
+
+recordTime.startTime()
+
 class redis_manager:
     #__server = ['10.209.70.17:6379',  '10.23.243.56:6379']
     #__queueName = 'mk_queue'
+    
     def __init__(self, serverLst, queueNameLst, isDemon = True):
         self.mServer = serverLst
         self.mQueueNameLst = queueNameLst
@@ -16,6 +32,10 @@ class redis_manager:
         self.mCurrentQueue = None
         self.mRdsLock = RLock()
         self.__connectRedis(isDemon)
+    
+    def stopDemon(self):
+        self.mSelectRdsTimer.stopTimer()
+        self.mUpdateRdsTimer.stopTimer()
     
     def __connectRedis(self, isDemon = True):
         rds_dict = {}
@@ -64,6 +84,13 @@ class redis_manager:
         return res
 
     def pop(self, isBlock = False):
+        
+        global part1_total_duration
+        global part2_total_duration
+        global part3_total_duration
+        global part4_total_duration
+        global part5_total_duration
+        
         line = None
         i = 10
         #Logger.getInstance().debugLog("Enter pop line method.")
@@ -72,11 +99,13 @@ class redis_manager:
                 try:
                     while i > 0:
                         i -= 1
+                        part1_total_duration += recordTime.getEllaspedTimeSinceLast()
                         #Logger.getInstance().debugLog("pop from rds: %s" % self.mRdsDict[self.mCurrentRds][0])      
                         if isBlock is False:
                             line = self.mCurrentRds.lpop(self.mCurrentQueue)
                         else:
                             line = self.mCurrentRds.blpop(self.mCurrentQueue)
+                        part2_total_duration += recordTime.getEllaspedTimeSinceLast()
                         try: 
                             if line is None:
                                 Logger.getInstance().debugLog("queue is empty.") 
@@ -96,7 +125,13 @@ class redis_manager:
                     line = None 
                     self.__selectRds()   
             #Logger.getInstance().debugLog("exit pop()!")
+            part3_total_duration += recordTime.getEllaspedTimeSinceLast()
             return line
+    
+    def printTime(self, isBlock = False):
+        libs.util.logger.Logger.getInstance().debugLog("ztotal time of part1 is: %.3fs ." % part1_total_duration)
+        libs.util.logger.Logger.getInstance().debugLog("ztotal time of part2 is: %.3fs ." % part2_total_duration)
+        libs.util.logger.Logger.getInstance().debugLog("ztotal time of part3 is: %.3fs ." % part3_total_duration)
     
     #Should add Lock.
     def __selectRds(self):
@@ -160,6 +195,7 @@ class TimerWorker:
         self.mInterval = interval
         self.mTimer = None
         self.mIsRunning = False
+        self.mStop = False
     def startTimer(self):
         #if self.mTimer and self.mTimer.is_alive():
         if self.mIsRunning == True:
@@ -169,7 +205,10 @@ class TimerWorker:
     def __repeatTimer(self, args):
         self.mIsRunning = False
         self.mWorkObj()
-        self.startTimer()
+        if self.mStop == False:     
+            self.startTimer()
+    def stopTimer(self):
+        self.mStop = True
      
 #redisManager = redis_manager(__server, __queueName)            
     

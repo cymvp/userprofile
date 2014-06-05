@@ -191,7 +191,7 @@ class work_thread(threading.Thread):
                         i += 1
                     
                     #deviceProfileManager.insertOrUpdateUser(cur, is_insert)
-                    self.__queue.task_done()
+            self.__queue.task_done()
         
         libs.util.logger.Logger.getInstance().errorLog('thread %s total handled count is: %d' % (self.__tag, handled_count))
 
@@ -262,6 +262,17 @@ if __name__ == "__main__":
     #print (getHashCode('http://outofmemory.cn/'))
     #sys.exit(1)
     
+    part1_total_duration = 0
+    part2_total_duration = 0
+    part3_total_duration = 0
+    part4_total_duration = 0
+    part5_total_duration = 0
+    
+    recordTime = libs.util.my_utils.RecordTime()
+    printProcess = libs.util.my_utils.PrintProcess('')
+    
+    recordTime.startTime()
+    
     libs.util.logger.Logger.getInstance().setLogFilePrefixName('')
     libs.util.logger.Logger.getInstance().setLogFileSurfixName('_pickmetric')
 
@@ -291,7 +302,9 @@ if __name__ == "__main__":
         write_thread_obj = work_thread(metricMap, str(i))
         write_thread_obj.start()
         g_work_thread.append(write_thread_obj)
-        
+    
+    recordTime.getEllaspedTimeSinceLast()
+    
     while gCount > 0:
         
         total_line += 1
@@ -309,7 +322,9 @@ if __name__ == "__main__":
                 break
         else:
             try:
+                part1_total_duration += recordTime.getEllaspedTimeSinceLast()
                 line = redisManager.pop()
+                part2_total_duration += recordTime.getEllaspedTimeSinceLast()
                 if line is None or len(line) == 0:
                     time.sleep(2)
                     continue
@@ -321,13 +336,26 @@ if __name__ == "__main__":
 
         '''tupl is ((4096,0x1807), { time:"2013-06-07 15:34:22", field_1:"value", field_2:"value" }) '''
         
+        part3_total_duration += recordTime.getEllaspedTimeSinceLast()
+        
         uid = util.utils.getUid(line)
         hash_code = getHashCode(uid)
         i = hash_code % config.const.THREAD_COUNT_PICK_METRIC
         g_work_thread[i].write_to_queue(line)
+        
+        part4_total_duration += recordTime.getEllaspedTimeSinceLast()
+        
+    libs.util.logger.Logger.getInstance().debugLog("total time of part1 is: %.3fs ." % part1_total_duration)
+    libs.util.logger.Logger.getInstance().debugLog("total time of part2 is: %.3fs ." % part2_total_duration)
+    libs.util.logger.Logger.getInstance().debugLog("total time of part3 is: %.3fs ." % part3_total_duration)
+    libs.util.logger.Logger.getInstance().debugLog("total time of part4 is: %.3fs ." % part4_total_duration)
+    
+    redisManager.printTime()
     
     for i in range(len(g_work_thread)):  
         g_work_thread[i].set_interrupt()
+        
+    redisManager.stopDemon()
         #g_work_thread[i].get_queue().join()
         
                         
