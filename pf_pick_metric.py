@@ -2,6 +2,7 @@ import sys
 import platform
 import time
 import traceback
+import gzip
 import threading
 from queue import Queue
 import queue
@@ -63,6 +64,8 @@ class work_thread(threading.Thread):
             except queue.Empty:
                 if self.interrupt_flag == True:
                     break
+                else:
+                    continue
             else:
                 handled_count += 1
                 if handled_count % 1000 == 0:
@@ -284,10 +287,17 @@ if __name__ == "__main__":
     #metricCollectionManager.drop_table()
     
     # python pf_pick_metric.py ./config/MetricMap_part.txt D:\mongodb\p_data\ubc_100
+    sys.argv[2] = 'd:/test.tar.gz'
     fMetricMap = libs.util.my_utils.openFile(sys.argv[1], 'r')
-    if platform.system() == 'Windows_xxx':
+    if config.const.FLAG_PICK_METRICS_FROM_REDIS == False:
         #chunlei_ubc_20130729_part
-        fInputFile = libs.util.my_utils.openFile(sys.argv[2], 'r')
+        fInputFile = gzip.open(sys.argv[2], 'rt', encoding = 'utf-8')
+        try:
+            fInputFile.readline()
+            fInputFile.readline()
+            fInputFile.readline()
+        except  Exception as e:
+            print(e)
     else:
         redisManager = libs.redis.redis_manager.redis_manager(config.const.CONST_SERVER_ADDR, config.const.CONST_QUEUE_NAME, True)
 
@@ -316,10 +326,10 @@ if __name__ == "__main__":
             libs.util.logger.Logger.getInstance().debugLog("Processed: %d lines." % total_line)
             if total_line > 500000000:
                 total_line = 1
-        if platform.system() == 'Windows_xxx':
+        if config.const.FLAG_PICK_METRICS_FROM_REDIS == False:
             line = fInputFile.readline()
-            if line == '':
-                break
+            if line is None or len(line) <= 0:
+                break            
         else:
             try:
                 part1_total_duration += recordTime.getEllaspedTimeSinceLast()
@@ -337,6 +347,9 @@ if __name__ == "__main__":
         '''tupl is ((4096,0x1807), { time:"2013-06-07 15:34:22", field_1:"value", field_2:"value" }) '''
         
         part3_total_duration += recordTime.getEllaspedTimeSinceLast()
+
+        if util.utils.isValidLine(line) is None:
+            continue
         
         uid = util.utils.getUid(line)
         hash_code = getHashCode(uid)
@@ -350,12 +363,12 @@ if __name__ == "__main__":
     libs.util.logger.Logger.getInstance().debugLog("total time of part3 is: %.3fs ." % part3_total_duration)
     libs.util.logger.Logger.getInstance().debugLog("total time of part4 is: %.3fs ." % part4_total_duration)
     
-    redisManager.printTime()
+    #redisManager.printTime()
     
     for i in range(len(g_work_thread)):  
         g_work_thread[i].set_interrupt()
         
-    redisManager.stopDemon()
+    #redisManager.stopDemon()
         #g_work_thread[i].get_queue().join()
         
                         

@@ -39,6 +39,8 @@ else:
     PERFORMANCE_DEVICE_TAG_COUNT = -1
 
 THREAD_COUNT_PICK_METRIC = 5
+
+FLAG_PICK_METRICS_FROM_REDIS = False
     
 def get_actural_count(count, test_count):
     if test_count < 0:
