@@ -457,7 +457,10 @@ class PFMetricHandler_4096_7d5(PFMetricHandler_Appid_Metricid):
                 tempMap[t] = dataMap
         sortedTuple = sorted(tempMap.items(),  key=lambda d:d[0], reverse = True)
         #dataMap = lines[-1]
-        return {self.__getProfileMetricLabel__('network_usage'): [sortedTuple[0][1]]}   
+        if len(sortedTuple) <= 0:
+            return {self.__getProfileMetricLabel__('network_usage'): []} 
+        else:
+            return {self.__getProfileMetricLabel__('network_usage'): [sortedTuple[0][1]]}   
     def calculateTag(self,  lines,  tagLst):
         #just use the first metric data, because there is only one item in profile metric collection..
         super(PFMetricHandler_4096_7d5,  self).calculateTag(lines,  tagLst)

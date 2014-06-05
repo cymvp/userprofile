@@ -201,14 +201,6 @@ if __name__ == "__main__":  # nDays,  mTop
                 profileMap = {dbmanager.pf_device_collection_manager.PFDeviceCollectionManager.final_getProfileTagLabel():tagMap[uid]}
                 cur, temp_flag = userProfileManager.merge_new_data_map(cur, uid, cuid, imei, profileMap)
                 write_thread.write_to_queue(userProfileManager.getCollectionName(), cur, is_insert)
-                #userProfileManager.insertOrUpdateUser_old(uid,  userInfoMap[uid][dbmanager.pf_device_collection_manager.PFCollectionManager.final_getCUidLabel()],  userInfoMap[uid][dbmanager.pf_device_collection_manager.PFCollectionManager.final_getIMEILabel()],  profileMap)
-                #anandonTagLst = userInfoMap[uid].get('abondonTagList')
-                #newTagLst = tagMap[uid]
-
-            #userProfileManager.insertOrUpdateUser(cur, is_insert)
-            
-            #resultMap[uid][list(foreign_data_map.keys())[0]] = next(foreign_data_map.values().__iter__())
-            #userProfileManager.insertOrUpdateUser_old(uid,  cuid, imei, resultMap[uid])
             
             #till here, Performance: 4000/5.5s on PC.
             part4_total_duration += recordTime.getEllaspedTimeSinceLast()
@@ -226,62 +218,6 @@ if __name__ == "__main__":  # nDays,  mTop
     
     ellapsedTime = recordTime.getEllapsedTime()
     printProcess.printCurrentProcess(ellapsedTime, total_device_count)
-    
-    
-    '''
-    Not call any more.
-    '''
-    sys.exit(1)
-    
-    libs.util.logger.Logger.getInstance().debugLog("Start calculating tags.")
-    
-    total_device_count = 0 
-    part1_total_duration = 0
-    part2_total_duration = 0
-    part3_total_duration = 0
-    part4_total_duration = 0
-    
-    #Get all user doc of profile_collection
-    profileCursors = userProfileManager.getAllDoc()
-    
-    if profileCursors is None:
-        libs.util.logger.Logger.getInstance().debugLog("device_collection is not existed, just quit.")
-        sys.exit(1)
-
-    max_count = get_actural_count(profileCursors.count(), PERFORMANCE_DEVICE_TAG_COUNT)
-    
-    #for each user profile doc; cur is user doc.
-    for cur in profileCursors:
-        #till here, Performance: 4000/0.54s on PC.
-        part1_total_duration += recordTime.getEllaspedTimeSinceLast()
-        total_device_count += 1
-        if total_device_count % 1000 == 0:
-            libs.util.logger.Logger.getInstance().debugLog("Has handled %d device." % total_device_count)
-        #Fixed me!!!!!!
-        if total_device_count > max_count:
-            break
-    
-        tagMap, userInfoMap = util.calc_tag.calc_tags(userProfileManager, cur,  tagLst, tagObjectLst)
-        part2_total_duration += recordTime.getEllaspedTimeSinceLast()
-        '''profileMap is:
-            "profile_tags":[  
-                   {'tagid1':123, 'name': n880e, 'category': model},  
-                   {'tagid2':456, 'name': n880e, 'category': model}  
-            ] ,
-            "profile_tags":[
-                                   
-            ] , 
-            ......
-        }'''
-            
-        for uid in tagMap:
-            profileMap = {dbmanager.pf_device_collection_manager.PFDeviceCollectionManager.final_getProfileTagLabel():tagMap[uid]}
-            userProfileManager.insertOrUpdateUser_old(uid,  userInfoMap[uid][dbmanager.pf_device_collection_manager.PFCollectionManager.final_getCUidLabel()],  userInfoMap[uid][dbmanager.pf_device_collection_manager.PFCollectionManager.final_getIMEILabel()],  profileMap)
-            #anandonTagLst = userInfoMap[uid].get('abondonTagList')
-            #newTagLst = tagMap[uid]
-        part3_total_duration += recordTime.getEllaspedTimeSinceLast()
-        
-    ellapsedTime = recordTime.getEllapsedTime()
-    printProcess.printFinalInfo(ellapsedTime)            
+               
 
     

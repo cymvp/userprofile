@@ -42,15 +42,11 @@ class write_thread(threading.Thread):
                 if self.interrupt_flag == True:
                     break
 
-def func(i, j):
-    print(i)
-    print(j)
-
 if __name__ == "__main__": 
     x = {1:2}
     y = x
-    a = write_thread(target=func, args=(x, y))
-    a.start()
+    #a = write_thread(target=func, args=(x, y))
+    #a.start()
 
     #print(x)
     #print(y)
