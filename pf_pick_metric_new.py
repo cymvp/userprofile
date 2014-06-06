@@ -21,6 +21,10 @@ import config.const
 metricCollector_4096_1807 =  {12: ('packagename',)}
 metricCollector_4096_7d3 =  {13: ('deviceinfo',)}
 
+error_count_1 = 0
+error_count_2 = 0
+error_count_3 = 0
+
 class work_thread(threading.Thread):
     
     
@@ -28,8 +32,13 @@ class work_thread(threading.Thread):
         threading.Thread.__init__(self)
         self.__queue = Queue()
         self.interrupt_flag = False
-        self.__metric_map = metricMap
+        #self.__metric_map = metricMap
         self.__tag = str_tag
+        
+        self.error_count_1 = 0
+        self.error_count_2 = 0
+        self.error_count_3 = 0
+        
         pass 
     
     def set_interrupt(self):
@@ -60,7 +69,7 @@ class work_thread(threading.Thread):
             if self.interrupt_flag == True and self.__queue.empty():
                 break
             try:
-                line = self.read_from_queue() 
+                line, arr, tupl = self.read_from_queue() 
             except queue.Empty:
                 if self.interrupt_flag == True:
                     break
@@ -70,11 +79,6 @@ class work_thread(threading.Thread):
                 handled_count += 1
                 if handled_count % 1000 == 0:
                     libs.util.logger.Logger.getInstance().errorLog('thread %s has handled count: %d' % (self.__tag, handled_count))
-                arr = line.strip().split(',')
-                #Parse raw data.
-                tupl = handle_data(arr,  self.__metric_map)   
-                if tupl is None:
-                    continue
                 
                 #One metric log data, for only one metricMap.
                 appid_metricid, valueMap = tupl
@@ -194,7 +198,7 @@ class work_thread(threading.Thread):
                         i += 1
                     
                     #deviceProfileManager.insertOrUpdateUser(cur, is_insert)
-            self.__queue.task_done()
+                self.__queue.task_done()
         
         libs.util.logger.Logger.getInstance().errorLog('thread %s total handled count is: %d' % (self.__tag, handled_count))
 
@@ -265,6 +269,10 @@ if __name__ == "__main__":
     #print (getHashCode('http://outofmemory.cn/'))
     #sys.exit(1)
     
+    if len(sys.argv) != 3:
+        print("Error params...... python3  pf_pick_metric_new.py ./config/metric_map_metrics.txt /data/web/upload/ubc_data/chunlei_ubc_20140604_ubc00_ai.tar.gz ")
+        sys.exit(1)
+    
     part1_total_duration = 0
     part2_total_duration = 0
     part3_total_duration = 0
@@ -287,7 +295,7 @@ if __name__ == "__main__":
     #metricCollectionManager.drop_table()
     
     # python pf_pick_metric.py ./config/MetricMap_part.txt D:\mongodb\p_data\ubc_100
-    sys.argv[2] = 'd:/test.tar.gz'
+    #sys.argv[2] = 'd:/test.tar.gz'
     fMetricMap = libs.util.my_utils.openFile(sys.argv[1], 'r')
     if config.const.FLAG_PICK_METRICS_FROM_REDIS == False:
         #chunlei_ubc_20130729_part
@@ -305,7 +313,8 @@ if __name__ == "__main__":
     
     gCount= 10
     
-    total_line = 0 
+    total_line = 0
+    valid_line = 0
         
     g_work_thread = []
     for i in range(config.const.THREAD_COUNT_PICK_METRIC):
@@ -319,13 +328,12 @@ if __name__ == "__main__":
         
         total_line += 1
         
-        if config.const.PERFORMANCE_DEVICE_COUNT > 0 and total_line > config.const.PERFORMANCE_DEVICE_COUNT:
+        if config.const.PERFORMANCE_DEVICE_COUNT > 0 and valid_line > config.const.PERFORMANCE_DEVICE_COUNT:
             break
         
-        if total_line % 1000 == 0:
-            libs.util.logger.Logger.getInstance().debugLog("Processed: %d lines." % total_line)
-            if total_line > 500000000:
-                total_line = 1
+        if total_line % 100000 == 0:
+            libs.util.logger.Logger.getInstance().debugLog("Processed total: %d lines." % total_line)
+            
         if config.const.FLAG_PICK_METRICS_FROM_REDIS == False:
             line = fInputFile.readline()
             if line is None or len(line) <= 0:
@@ -348,13 +356,20 @@ if __name__ == "__main__":
         
         part3_total_duration += recordTime.getEllaspedTimeSinceLast()
 
-        if util.utils.isValidLine(line) is None:
+        #Parse raw data.
+        arr = line.strip().split(',')
+        tupl = handle_data(arr,  metricMap)   
+        if tupl is None:
             continue
+        
+        valid_line += 1
+        if valid_line % 1000 == 0:
+            libs.util.logger.Logger.getInstance().debugLog("Processed valid: %d lines." % valid_line)
         
         uid = util.utils.getUid(line)
         hash_code = getHashCode(uid)
         i = hash_code % config.const.THREAD_COUNT_PICK_METRIC
-        g_work_thread[i].write_to_queue(line)
+        g_work_thread[i].write_to_queue((line, arr, tupl))
         
         part4_total_duration += recordTime.getEllaspedTimeSinceLast()
         
@@ -367,9 +382,13 @@ if __name__ == "__main__":
     
     for i in range(len(g_work_thread)):  
         g_work_thread[i].set_interrupt()
+        g_work_thread[i].get_queue().join()
+        
+    ellapsedTime = recordTime.getEllapsedTime()
+    printProcess.printCurrentProcess(ellapsedTime, total_line)
         
     #redisManager.stopDemon()
-        #g_work_thread[i].get_queue().join()
+        #
         
                         
                 

@@ -18,7 +18,8 @@ if platform.system() == 'Windows_xxx':
     MONGODB_PORT = 27017
     MONGODB_DBNAME = 'ubc_database'
 else:
-    MONGODB_HOST = 'bj-ci-01.baiyi.com'
+    #MONGODB_HOST = 'bj-ci-01.baiyi.com'
+    MONGODB_HOST = '10.5.0.162'
     MONGODB_PORT = 27017
     MONGODB_DBNAME = 'user_profile'
     
