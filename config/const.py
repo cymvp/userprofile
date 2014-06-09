@@ -19,7 +19,7 @@ if platform.system() == 'Windows_xxx':
     MONGODB_DBNAME = 'ubc_database'
 else:
     #MONGODB_HOST = 'bj-ci-01.baiyi.com'
-    MONGODB_HOST = '10.5.0.162'
+    MONGODB_HOST = '10.5.0.81'
     MONGODB_PORT = 27017
     MONGODB_DBNAME = 'user_profile'
     
@@ -31,10 +31,10 @@ else:
     #MONGODB_PORT = 27017
     #MONGODB_DBNAME = 'user_profile'
 
-PERFORMANCE_TEST = True #False
+PERFORMANCE_TEST = False #False
 if PERFORMANCE_TEST == True:    
-    PERFORMANCE_DEVICE_COUNT = 10000
-    PERFORMANCE_DEVICE_TAG_COUNT = 10000
+    PERFORMANCE_DEVICE_COUNT = 50000
+    PERFORMANCE_DEVICE_TAG_COUNT = 50000
 else:
     PERFORMANCE_DEVICE_COUNT = -1
     PERFORMANCE_DEVICE_TAG_COUNT = -1
