@@ -465,6 +465,8 @@ class PFMetricHandler_4096_7d5(PFMetricHandler_Appid_Metricid):
         #just use the first metric data, because there is only one item in profile metric collection..
         super(PFMetricHandler_4096_7d5,  self).calculateTag(lines,  tagLst)
         resultLst = []
+        if len(lines) <= 0:
+            return resultLst
         line = lines[0]
         wifi = line['wifi']
         gprs = line['gprs']
