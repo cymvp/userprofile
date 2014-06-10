@@ -53,8 +53,10 @@ if __name__ == "__main__":
             ellapsedTime = recordTime.getEllapsedTime()
             printProcess.printCurrentProcess(ellapsedTime, lineNumber)
         
-        res = redisManager.sadd(arr[0].strip(), arr[1].strip())
-        
+        arr[0] = arr[0]
+        res = redisManager.sadd(arr[0].strip().replace(r'\n', ''), arr[1].strip())
+        #res = arr[0].strip().replace(r'\n', '')
+        #print(res)
         
         #res = False
         if res == False:
