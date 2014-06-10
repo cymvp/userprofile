@@ -63,6 +63,26 @@ class redis_manager:
         
         Logger.getInstance().debugLog("Start connecting redis Server.")
     
+    def sadd(self, k, v_list):
+        res = False
+        i = 5
+        with self.mRdsLock:
+            if self.mCurrentRds is not None:
+                try:
+                    while i > 0:
+                        i -= 1
+                        #Logger.getInstance().debugLog("push to rds: %s" % self.mRdsDict[self.mCurrentRds][0])
+                        res = self.mCurrentRds.sadd(k, v_list)
+                        if res != None:
+                            res = True
+                            break;
+                        time.sleep(1)         
+                except redis.exceptions.ConnectionError:
+                    Logger.getInstance().debugLog("error happened when sadd value, so we forced select other redis.")
+                    res = False
+        return res
+
+    
     def push(self, k, b):
         #Logger.getInstance().debugLog("Enter push line method.")
         res = False
