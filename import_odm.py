@@ -1,19 +1,14 @@
 #!D:\WorkSpace\Python33\python.exe
-import platform
 import time
-import libs.redis.redis_manager
 import libs.util.logger
 import libs.util.my_utils
 import sys
 import config.const
+import tags.pf_tags
 
-def lpush(name, *values):
-    "Push ``values`` onto the head of the list ``name``"
-    return execute_command('LPUSH', name, *values)
+from dbmanager.pf_tags_collection_manager import PFTagsCollectionManager
+from dbmanager.pf_taguid_collection_manager import PFTagUidsCollectionManager
 
-#### COMMAND EXECUTION AND PROTOCOL PARSING ####
-def execute_command(self, *args, **options):
-    command_name = args[0]
 
 if __name__ == "__main__":
     
@@ -34,12 +29,14 @@ if __name__ == "__main__":
     recordTime.startTime()
     
     f_odm_file = libs.util.my_utils.openFile(sys.argv[1], 'r')
-    #f_odm_file = [1]   
-    redisManager = libs.redis.redis_manager.redis_manager(config.const.CONST_SERVER_ADDR, config.const.CONST_QUEUE_NAME, False)
+    
+    tag_deviceid_manager = PFTagUidsCollectionManager()
+    
+    g_odm_uids_map = {} 
     
     for line in f_odm_file:
         #line = 'o123\tabcde'
-        arr = line.split('\t')
+        arr = line.strip().split('\t')
         if len(arr) < 2:
             errorNumber += 1
             continue
@@ -49,16 +46,27 @@ if __name__ == "__main__":
             break;
         
         lineNumber += 1
-        if lineNumber % 100000 == 0:
+        if lineNumber % 10000 == 0:
             ellapsedTime = recordTime.getEllapsedTime()
             printProcess.printCurrentProcess(ellapsedTime, lineNumber)
         
-        arr[0] = arr[0]
-        res = redisManager.sadd(arr[0].strip().replace(r'\n', ''), arr[1].strip())
-        #res = arr[0].strip().replace(r'\n', '')
-        #print(res)
+        arr[0] = arr[0].strip().replace(r'\n', '')
         
-        #res = False
-        if res == False:
-            errorNumber += 1    
-            continue
+        
+        unique_name = arr[0]
+        category_name = 'operationodm'
+        tag_id = category_name + '_' + unique_name
+
+        if g_odm_uids_map.get(tag_id) is None:
+            t = {}
+            t[PFTagsCollectionManager.getNameLabel()] = (arr[0])
+            t[PFTagsCollectionManager.getCategoryLabel()] = category_name
+            t[PFTagsCollectionManager.getUniqueNameLabel()] = unique_name
+            g_odm_uids_map[tag_id] = (t, [arr[1]])
+        else:
+            g_odm_uids_map[tag_id][1].append(arr[1])
+        
+    for tag_id in g_odm_uids_map:   
+        tag_map, device_list = g_odm_uids_map.get(tag_id)
+        tag_deviceid_manager.insert_tag_devices_list(tag_map, device_list)
+        

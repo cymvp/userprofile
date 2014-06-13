@@ -40,7 +40,7 @@ if __name__ == "__main__":
     libs.util.logger.Logger.getInstance().setLogFileSurfixName('_testperformance')
     
     metricCollectionManager = PFMetricCollectionManager()
-    metricCollectionManager.drop_table()
+    #metricCollectionManager.drop_table()
     recordTime.startTime()
     
     for i in range(10000):
