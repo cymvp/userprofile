@@ -38,11 +38,40 @@ if __name__ == "__main__":  # nDays,  mTop
     
     print('a')
     
+    part1_total_duration = 0
+    part2_total_duration = 0
+    part3_total_duration = 0
+    part4_total_duration = 0
+    
     recordTime = libs.util.my_utils.RecordTime()
     printProcess = libs.util.my_utils.PrintProcess('')
     
     recordTime.startTime()
     
+    
+    d = {}
+    l = []
+    for i in range(100000):
+        l.append(str(1))
+        if i % 10000 == 0:
+            d[i] = l
+            l = []
+    
+    a= len(str(d))
+    print(a)
+    
+    for j in range(100):            
+        #part1_total_duration += recordTime.getEllaspedTimeSinceLast()
+        
+        #a= len(str(d))
+        print('1')
+        
+        part2_total_duration += recordTime.getEllaspedTimeSinceLast()
+        
+    print("total time of part1 is: %.3fs ." % part1_total_duration)
+    print("total time of part2 is: %.3fs ." % part2_total_duration)
+    
+    sys.exit()    
     
     '''
     i = 0

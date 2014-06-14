@@ -68,7 +68,7 @@ def __convert_appid_metricid(arr, appid, metricid):
     arr[1] = appid
     arr[0] = metricid
 
-def insertOrUpdateUser(self,  cur, chunleiId,  cuid,  imei, metrics_list, recordTime, collection = None):
+def insertOrUpdateUser(self,  cur, chunleiId,  cuid,  imei, metrics_list, recordTime, collection = None, str_date = None):
     
     global part7_total_duration
     global part8_total_duration
@@ -77,7 +77,7 @@ def insertOrUpdateUser(self,  cur, chunleiId,  cuid,  imei, metrics_list, record
     
     try:
         if collection is None:
-            collection = self.mDBManager.getCollection(self.__getCollectionName__())
+            collection = self.mDBManager.getCollection(self.__getCollectionName__(str_date))
         #check whether this document existed, checked by chunleiid.
 
         userMap = {}
@@ -126,15 +126,18 @@ if __name__ == "__main__":
     #print (getHashCode('http://outofmemory.cn/'))
     #sys.exit(1)
     
-    if len(sys.argv) < 3:
+    if len(sys.argv) < 4:
         print("Error params...... python3  pf_pick_metric_new.py ./config/metric_map_metrics.txt /data/web/upload/ubc_data/chunlei_ubc_20140604_ubc00_ai.tar.gz ")
         sys.exit(1)
     
     skip_line = -1  
-    if len(sys.argv) == 4:
-        skip_line = int(sys.argv[3])
+    if len(sys.argv) == 5:
+        skip_line = int(sys.argv[4])
 
     print(skip_line)
+    
+    g_date = sys.argv[3]
+    
     
     part1_total_duration = 0
     part2_total_duration = 0
@@ -147,8 +150,10 @@ if __name__ == "__main__":
     part9_total_duration = 0
     part10_total_duration = 0
     
+    
     part11_total_duration = 0
     part12_total_duration = 0
+    part13_total_duration = 0
     
     
     recordTime = libs.util.my_utils.RecordTime()
@@ -163,6 +168,8 @@ if __name__ == "__main__":
      
     metricCollectionManager = PFMetricCollectionManager()
     
+    current_collection_name = metricCollectionManager.final_getCollection(g_date)
+    
     #fixme!!!!!!!
     #metricCollectionManager.drop_table()
     
@@ -171,13 +178,13 @@ if __name__ == "__main__":
     fMetricMap = libs.util.my_utils.openFile(sys.argv[1], 'r')
     if config.const.FLAG_PICK_METRICS_FROM_REDIS == False:
         #chunlei_ubc_20130729_part
+        libs.util.logger.Logger.getInstance().debugLog("File name is %s" % sys.argv[2])
         fInputFile = gzip.open(sys.argv[2], 'rt', encoding = 'utf-8')
-        try:
-            fInputFile.readline()
-            fInputFile.readline()
-            fInputFile.readline()
-        except  Exception as e:
-            print(e)
+        for i in range(3):
+            try:
+                fInputFile.readline()
+            except  Exception as e:
+                print(e)
     else:
         redisManager = libs.redis.redis_manager.redis_manager(config.const.CONST_SERVER_ADDR, config.const.CONST_QUEUE_NAME, True)
 
@@ -190,6 +197,7 @@ if __name__ == "__main__":
     insert_count = 0
     
     g_blacklist_map = {}
+    g_uid_size_map = {}
     
     g_last_uid = ''
     g_last_imei = ''
@@ -251,6 +259,10 @@ if __name__ == "__main__":
             libs.util.logger.Logger.getInstance().debugLog("total time of part8 is: %.3fs ." % part8_total_duration)
             libs.util.logger.Logger.getInstance().debugLog("total time of part9 is: %.3fs ." % part9_total_duration)
             libs.util.logger.Logger.getInstance().debugLog("total time of part10 is: %.3fs ." % part10_total_duration)
+            
+            libs.util.logger.Logger.getInstance().debugLog("total time of part11 is: %.3fs ." % part11_total_duration)
+            libs.util.logger.Logger.getInstance().debugLog("total time of part12 is: %.3fs ." % part12_total_duration)
+            libs.util.logger.Logger.getInstance().debugLog("total time of part13 is: %.3fs ." % part13_total_duration)
             
             libs.util.logger.Logger.getInstance().debugLog("total count of black uid is: %d" % len(g_blacklist_map))
             libs.util.logger.Logger.getInstance().debugLog(str(g_blacklist_map))
@@ -322,6 +334,7 @@ if __name__ == "__main__":
             cuid = util.utils.getCUID(line)
             
             if g_blacklist_map.get(uid) is not None:
+                g_blacklist_map[uid] += 1
                 continue
     
             # g_last_uid is empty only if the uid is the first uid..
@@ -332,7 +345,7 @@ if __name__ == "__main__":
                 g_last_metric_data_list = []
                 
                 #merge_new_data_map()
-                g_last_cur = metricCollectionManager.isDocExist(uid)
+                g_last_cur = metricCollectionManager.isDocExist(uid, current_collection_name)
                 
                 libs.util.logger.Logger.getInstance().debugLog("Must call once!") 
      
@@ -360,19 +373,21 @@ if __name__ == "__main__":
                         part3_total_duration += recordTime.getEllaspedTimeSinceLast()
                         #metricCollectionManager.insertOrUpdateUser(g_last_uid,  g_last_cuid,  g_last_imei,  g_last_metric_data_list)
                         #Fixed me. Should updating using $set, because doc is so big.
-                        insertOrUpdateUser(metricCollectionManager, g_last_cur, g_last_uid,  g_last_cuid,  g_last_imei,  g_last_metric_data_list, recordTime)
+                        
+                        insertOrUpdateUser(metricCollectionManager, g_last_cur, g_last_uid,  g_last_cuid,  g_last_imei,  g_last_metric_data_list, recordTime, None, g_date)
                         
                         #It is weird when enter this section. Because remove this uid when handle metrics.
-                        if g_last_cur is not None and len(str(g_last_cur)) > 2000000:
+                        '''
+                        if g_last_cur is not None and len(str(g_last_cur)) > 1000000:
                             temp_elapsed = recordTime.getEllaspedTimeSinceLast()
                             part8_total_duration += temp_elapsed
                             libs.util.logger.Logger.getInstance().debugLog("insert big size: length of current cur is %s, size is %d, line num is: %d, using : %.3fs." % (g_last_uid, len(str(g_last_cur)), total_line, temp_elapsed)) 
-                        elif g_last_metric_data_list is not None and len(str(g_last_metric_data_list)) > 2000000:
+                        elif g_last_metric_data_list is not None and len(str(g_last_metric_data_list)) > 1000000:
                             temp_elapsed = recordTime.getEllaspedTimeSinceLast()
                             part8_total_duration += temp_elapsed
                             libs.util.logger.Logger.getInstance().debugLog("update big size: length of current cur is %s, size is %d, line num is: %d, using : %.3fs." % (g_last_uid, len(str(g_last_metric_data_list)), total_line, temp_elapsed)) 
                         part8_total_duration += recordTime.getEllaspedTimeSinceLast()
-                        
+                        '''
                         #raise util.pf_exception.PFExceptionWrongStatus()
                     except util.pf_exception.PFExceptionWrongStatus:
                         print('22222')
@@ -397,7 +412,7 @@ if __name__ == "__main__":
                 g_last_metric_data_list = []
                 
                 #merge_new_data_map()
-                g_last_cur = metricCollectionManager.isDocExist(g_last_uid)
+                g_last_cur = metricCollectionManager.isDocExist(g_last_uid, current_collection_name)
                      
                 if g_last_cur is None or g_last_cur.count() == 0:
                     g_last_metric_data_list = []
@@ -411,6 +426,7 @@ if __name__ == "__main__":
                 metricId = metricid_lst[i]
                 appId = appid_lst[i]
                 valueMap = value_map_lst[i]
+                
                 metric_map = metricCollectionManager.isMetricExist(g_last_metric_data_list, metricId, appId)
                 if metric_map is None:
                     #metric_map = metricCollectionManager.get_metric_data_list(uid, appId, metricId)
@@ -418,21 +434,34 @@ if __name__ == "__main__":
                     metric_map = metricCollectionManager.buildsubDocMetric(metricId,  appId)
                     g_last_metric_data_list.append(metric_map)
                     #userMap[PFMetricCollectionManager.final_getMetricsLabel()].append(metricMap)
-                    
+                
                 metricHandler = ubc.pf_metric_helper.getMetricHandler('%x'% int(metricId, 16),  str(appId)) # hex(metricId)[2:]
+                
+                part11_total_duration += recordTime.getEllaspedTimeSinceLast()
+                
                 metric_map[PFMetricCollectionManager.final_getMetricDataLabel()] = metricHandler.handle_raw_data(metric_map[PFMetricCollectionManager.final_getMetricDataLabel()], valueMap) 
                 
+                part12_total_duration += recordTime.getEllaspedTimeSinceLast()
                 #Fix me!!!!!! Verify it is wrong to put here.
                 #g_last_metric_data_list.append(metric_map)
                 
                 i += 1
-        
-            if len(str(g_last_cur)) > 2000000:
-                libs.util.logger.Logger.getInstance().debugLog("read big size: length of current cur is %s, size is %d, line num is: %d." % (g_last_uid, len(str(g_last_cur)), total_line))
-                if g_blacklist_map.get(g_last_uid) is None:
-                    g_blacklist_map[g_last_uid] = 1
-                else:
-                    g_blacklist_map[g_last_uid] += 1
+            
+            part13_total_duration += recordTime.getEllaspedTimeSinceLast()
+            
+            if g_uid_size_map.get(g_last_uid) is None:
+                g_uid_size_map[g_last_uid] = [0, 0]
+            #Calculate size of cur per 100 times;Including first time.
+            if g_uid_size_map[g_last_uid][0] % 100 == 0:
+                cur_size = len(str(g_last_cur))
+                if cur_size > 1000000:
+                    libs.util.logger.Logger.getInstance().debugLog("read big size: length of current cur is %s, size is %d, line num is: %d." % (g_last_uid, len(str(g_last_cur)), total_line))
+                    if g_blacklist_map.get(g_last_uid) is None:
+                        g_blacklist_map[g_last_uid] = 1
+                    else:
+                        g_blacklist_map[g_last_uid] += 1         
+                g_uid_size_map[g_last_uid][1] = cur_size
+            g_uid_size_map[g_last_uid][0] += 1 
             
             part6_total_duration += recordTime.getEllaspedTimeSinceLast()
                 
@@ -453,6 +482,8 @@ if __name__ == "__main__":
     libs.util.logger.Logger.getInstance().debugLog("total time of part8 is: %.3fs ." % part8_total_duration)
     libs.util.logger.Logger.getInstance().debugLog("total time of part9 is: %.3fs ." % part9_total_duration)
     libs.util.logger.Logger.getInstance().debugLog("total time of part10 is: %.3fs ." % part10_total_duration)
-    
+    libs.util.logger.Logger.getInstance().debugLog("total time of part11 is: %.3fs ." % part11_total_duration)
+    libs.util.logger.Logger.getInstance().debugLog("total time of part12 is: %.3fs ." % part12_total_duration)
+    libs.util.logger.Logger.getInstance().debugLog("total time of part13 is: %.3fs ." % part13_total_duration)
 
                     
