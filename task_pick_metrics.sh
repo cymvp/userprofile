@@ -32,7 +32,8 @@ i=0
 for s in ${arr[@]}
 do
     print_debug_info "file is: ${str_dir}${arr[i]}"
-    python3 pf_pick_metric_old.py  ./config/metric_map_metrics.txt "${str_dir}${arr[i]}"
+    print_debug_info "python3 pf_pick_metric_old.py  ./config/metric_map_metrics.txt "${str_dir}${arr[i]}" "${d}""
+    python3 pf_pick_metric_old.py  ./config/metric_map_metrics.txt "${str_dir}${arr[i]}" "${d}"
     i=$(($i+1))
 done
 
