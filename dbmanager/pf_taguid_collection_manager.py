@@ -113,15 +113,22 @@ class PFTagUidsCollectionManager(PFCollectionManager):
         return (currentCur, lastPartition)
     '''
    
-    def insert_tag_devices_list(self, tag_map, device_list):
+    def insert_tag_devices_list(self, tag_map, device_list, total_uid_count = -1, current_page = -1):
         collection = self.mDBManager.getCollection(self.__getCollectionName__())
         tag_unique_name = tag_map[PFTagsCollectionManager.getUniqueNameLabel()]
         tag_category = tag_map[PFTagsCollectionManager.getCategoryLabel()]
-        tag_id = tag_category + '_' + tag_unique_name        
+        
+        if current_page > 0:
+            tag_id = tag_category + '_' + tag_unique_name + '(' + str(current_page) + ')'
+        else:
+            tag_id = tag_category + '_' + tag_unique_name 
+        if total_uid_count <= 0:
+            total_uid_count = len(device_list)
+                  
         c = self.isDocExist(tag_id)
         if c is None:
             #insert.
-            tag_map = self.__buildDoc(tag_id, tag_category, tag_unique_name, tag_map[PFTagsCollectionManager.getNameLabel()])
+            tag_map = self.__buildDoc(tag_id, tag_category, tag_unique_name, tag_map[PFTagsCollectionManager.getNameLabel()], total_uid_count)
             tag_map[PFTagUidsCollectionManager.final_getUidLstLabel()].extend(device_list)
             self.mDBManager.insert(tag_map,  collection)
         else:
@@ -131,7 +138,7 @@ class PFTagUidsCollectionManager(PFCollectionManager):
             self.mDBManager.update(self.__buildUid__(tag_id),  tag_map,  collection)  
    
     @staticmethod
-    def __buildDoc(tag_id, category, uniqueName, displayName):
+    def __buildDoc(tag_id, category, uniqueName, displayName, total_uid_count):
         m = {}
         m[PFTagUidsCollectionManager.final_getUidLabel()] = tag_id
         m[PFTagUidsCollectionManager.final_getTagCategoryLabel()] = category
@@ -139,6 +146,8 @@ class PFTagUidsCollectionManager(PFCollectionManager):
         m[PFTagUidsCollectionManager.final_getTagDisplayNameLabel()] = displayName
         #m[PFTagUidsCollectionManager.final_getPartitionLabel()] = lastPartition
         m[PFTagUidsCollectionManager.final_getUidLstLabel()] = []
+        m['total_count'] = str(total_uid_count)
+            
         return m
     
 if __name__ == "__main__":

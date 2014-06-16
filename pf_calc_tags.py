@@ -12,6 +12,8 @@ from dbmanager.pf_collection_manager import PFCollectionManager
 from dbmanager.pf_device_collection_manager import PFDeviceCollectionManager
 from dbmanager.pf_taguid_collection_manager import PFTagUidsCollectionManager
 
+MAX_UID_COUNT_PER_DOC = 500000
+
 def __get_devices_by_tag(tag_manager, device_manager, total_tag_map):
     result_map = {}
     total_device_count = 0
@@ -59,6 +61,7 @@ if __name__ == "__main__":
     tag_manager = PFTagsCollectionManager()
     device_manager = PFDeviceCollectionManager()
     tag_deviceid_manager = PFTagUidsCollectionManager()
+    #Get all tag doc.
     total_tag_map = __get_tag_device_map(tag_manager)
     
     #for x in total_tag_map:
@@ -78,7 +81,22 @@ if __name__ == "__main__":
             for tag_id in result_map:
                 tag_map = total_tag_map.get(tag_id)
                 device_list = result_map.get(tag_id)
-                tag_deviceid_manager.insert_tag_devices_list(tag_map, device_list)
+                page_size = len(device_list)
+                if page_size > MAX_UID_COUNT_PER_DOC:
+                    page_size = MAX_UID_COUNT_PER_DOC
+                
+                page_count = len(device_list) / page_size
+                start_index = 0
+                if len(device_list) % page_size != 0:
+                    page_count += 1
+                for i in range(page_count):
+                    start_index = start_index * i
+                    current_page_size = 0
+                    if len(device_list) - start_index > page_size:
+                        current_page_size = page_size
+                    else:
+                        current_page_size = len(device_list) - start_index
+                    tag_deviceid_manager.insert_tag_devices_list(tag_map, device_list[start_index:current_page_size], len(device_list), i + 1)
                     
     ellapsedTime = recordTime.getEllapsedTime()
     printProcess.printFinalInfo(ellapsedTime)  
