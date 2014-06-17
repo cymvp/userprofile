@@ -1,6 +1,7 @@
 import dbmanager.pf_tags_collection_manager
 from dbmanager.pf_collection_manager import PFCollectionManager
 from dbmanager.pf_tags_collection_manager import PFTagsCollectionManager
+import util.pf_exception
 
 class PFTagUidsCollectionManager(PFCollectionManager):
     __COLLCETION_PREFIX = 'tag_uids_collection'
@@ -113,17 +114,20 @@ class PFTagUidsCollectionManager(PFCollectionManager):
         return (currentCur, lastPartition)
     '''
    
-    def insert_tag_devices_list(self, tag_map, device_list, total_uid_count = -1, current_page = -1):
+    def insert_tag_devices_list(self, tag_map, device_list, total_uid_count, current_page = -1):
         collection = self.mDBManager.getCollection(self.__getCollectionName__())
         tag_unique_name = tag_map[PFTagsCollectionManager.getUniqueNameLabel()]
         tag_category = tag_map[PFTagsCollectionManager.getCategoryLabel()]
         
-        if current_page > 0:
-            tag_id = tag_category + '_' + tag_unique_name + '(' + str(current_page) + ')'
+        #split page.
+        if len(device_list) != total_uid_count:  
+            if current_page > 0:
+                tag_id = tag_category + '_' + tag_unique_name + '(' + str(current_page) + ')'
+            else:
+                raise util.pf_exception.PFExceptionFormat()
         else:
             tag_id = tag_category + '_' + tag_unique_name 
-        if total_uid_count <= 0:
-            total_uid_count = len(device_list)
+
                   
         c = self.isDocExist(tag_id)
         if c is None:
@@ -135,6 +139,7 @@ class PFTagUidsCollectionManager(PFCollectionManager):
             #update
             tag_map = c.__getitem__(0)
             tag_map[PFTagUidsCollectionManager.final_getUidLstLabel()] = device_list
+            tag_map['total_count'] = str(total_uid_count)
             self.mDBManager.update(self.__buildUid__(tag_id),  tag_map,  collection)  
    
     @staticmethod

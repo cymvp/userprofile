@@ -85,18 +85,18 @@ if __name__ == "__main__":
                 if page_size > MAX_UID_COUNT_PER_DOC:
                     page_size = MAX_UID_COUNT_PER_DOC
                 
-                page_count = len(device_list) / page_size
+                page_count = int(len(device_list) / page_size)
                 start_index = 0
                 if len(device_list) % page_size != 0:
                     page_count += 1
                 for i in range(page_count):
-                    start_index = start_index * i
+                    start_index = page_size * i
                     current_page_size = 0
                     if len(device_list) - start_index > page_size:
                         current_page_size = page_size
                     else:
                         current_page_size = len(device_list) - start_index
-                    tag_deviceid_manager.insert_tag_devices_list(tag_map, device_list[start_index:current_page_size], len(device_list), i + 1)
+                    tag_deviceid_manager.insert_tag_devices_list(tag_map, device_list[start_index:page_size * i + current_page_size], len(device_list), i + 1)
                     
     ellapsedTime = recordTime.getEllapsedTime()
     printProcess.printFinalInfo(ellapsedTime)  

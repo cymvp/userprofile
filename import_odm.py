@@ -68,5 +68,5 @@ if __name__ == "__main__":
         
     for tag_id in g_odm_uids_map:   
         tag_map, device_list = g_odm_uids_map.get(tag_id)
-        tag_deviceid_manager.insert_tag_devices_list(tag_map, device_list)
+        tag_deviceid_manager.insert_tag_devices_list(tag_map, device_list, len(device_list))
         
