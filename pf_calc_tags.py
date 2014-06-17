@@ -80,6 +80,9 @@ if __name__ == "__main__":
         if result_map is not None and len(result_map) > 0:
             for tag_id in result_map:
                 tag_map = total_tag_map.get(tag_id)
+                
+                tag_deviceid_manager.remove_doc(tag_map)
+                
                 device_list = result_map.get(tag_id)
                 page_size = len(device_list)
                 if page_size > MAX_UID_COUNT_PER_DOC:

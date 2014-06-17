@@ -79,6 +79,15 @@ class PFDBManager:
             self.__reportExcept(e)
             raise util.pf_exception.PFExceptionWrongStatus
         
+    def remove(self, doc, collection):
+        self.__checkStatus(collection)
+        try:
+            collection.remove(doc)
+        except (pymongo.errors.TimeoutError,  pymongo.errors.AutoReconnect) as e:
+            self.__resetDBStatus()
+            self.__reportExcept(e)
+            raise util.pf_exception.PFExceptionWrongStatus
+        
     def drop_collection(self, collection):
         self.__checkStatus(collection)
         try:

@@ -114,6 +114,16 @@ class PFTagUidsCollectionManager(PFCollectionManager):
         return (currentCur, lastPartition)
     '''
    
+    def remove_doc(self, tag_map):
+        collection = self.mDBManager.getCollection(self.__getCollectionName__())
+        tag_unique_name = tag_map[PFTagsCollectionManager.getUniqueNameLabel()]
+        tag_category = tag_map[PFTagsCollectionManager.getCategoryLabel()]
+        tag_id = tag_category + '_' + tag_unique_name
+        spec_map = {'$regex': tag_id}
+        uidMap = self.__buildUid__(spec_map)
+        self.mDBManager.remove(uidMap, collection)
+
+   
     def insert_tag_devices_list(self, tag_map, device_list, total_uid_count, current_page = -1):
         collection = self.mDBManager.getCollection(self.__getCollectionName__())
         tag_unique_name = tag_map[PFTagsCollectionManager.getUniqueNameLabel()]
