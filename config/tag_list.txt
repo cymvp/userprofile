@@ -83,6 +83,12 @@ app_category,美化,美化
 app_category,生活,生活
 app_category,主题,主题
 app_category,壁纸,壁纸
+resolution,320v480,320-480
+resolution,480v800,480-800
+resolution,540v960,540-960
+resolution,600v960,600-960
+resolution,720v1280,720-1280
+resolution,1080v1920,1080-1920
 operationchannel,2000000,ROM
 operationchannel,2010000,一键root
 operationchannel,2020000,Wifi福利社

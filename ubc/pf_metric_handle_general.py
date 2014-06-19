@@ -440,7 +440,16 @@ class PFMetricHandler_4096_7d3(PFMetricHandler_Appid_Metricid):
                 tgs = tags.pf_tag_helpers.PFTagsHelper.final_getTagLstByCategory(tagLst, categoryName)
                 for tg in tgs:
                     if tg.isFitTag(deviceInfoMap[k]) :
-                        resultLst.append(tg)    
+                        resultLst.append(tg)
+            if k == 'resolution':
+                categoryName = k
+                xy_dot = deviceInfoMap[k].split(',')
+                if xy_dot is None or len(xy_dot) == 2:
+                    x_dot, y_dot = xy_dot
+                    tgs = tags.pf_tag_helpers.PFTagsHelper.final_getTagLstByCategory(tagLst, categoryName)
+                    for tg in tgs:
+                        if tg.isFitTag((x_dot, y_dot)) :
+                            resultLst.append(tg)
         return resultLst
         
 class PFMetricHandler_4096_7d5(PFMetricHandler_Appid_Metricid):

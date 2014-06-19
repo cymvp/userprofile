@@ -215,7 +215,39 @@ class PFTags_operationversion(PFTags_category):
         if str_tag_value == param:
             return True
         return False  
-
+    
+class PFTags_resolution(PFTags_category):
+    #override
+    def isFitCategory(self, param):
+        is_fit_x = False
+        is_fit_y = False
+        tagValue = self.mTag.getUniqueName()
+        x_dot_tag, y_dot_tag = tagValue.split('v') 
+        x_dot, y_dot = param
+        
+        x_dot_tag = int(x_dot_tag)
+        y_dot_tag = int(y_dot_tag)
+        x_dot = int(x_dot)
+        y_dot = int(y_dot)
+        
+        if x_dot >= x_dot_tag:
+            r = x_dot - x_dot_tag
+        else:
+            r = x_dot_tag - x_dot
+        if r  / x_dot_tag <= 0.05:
+            is_fit_x = True
+        
+        if y_dot >= y_dot_tag:
+            r = y_dot - y_dot_tag
+        else:
+            r = y_dot_tag - y_dot
+        if r  / y_dot_tag <= 0.15:
+            is_fit_y = True
+        
+        if is_fit_x == True and is_fit_y == True:
+            return True
+        else:
+            return False 
 #should name PFTags_Category_UnigueName, extend PFTags_tag, extend PFTags.  
 #class PFTags_memory_512(PFTags_tag):
 #def isFitTag(self,  param):
