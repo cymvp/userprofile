@@ -244,7 +244,7 @@ def buildMetricData_new(manager,  cur, appId_metricId_map, foreign_tuple_lst = N
     '''
     return buildMetricData(manager, [[cur, ],], appId_metricId_map, foreign_tuple_lst, 1)
 
-def calc_profile(uidMap,  tops = 3): 
+def calc_profile(uidMap,  str_start_day, str_end_day, cur, param = None, tops = 3): 
     '''
     uidMap is: 
     {
@@ -277,6 +277,7 @@ def calc_profile(uidMap,  tops = 3):
         ......
     }'''
     resultMap = {}
+    old_lines = None
     #Get each uid from metrics_collection immediate struct.
     for uid in uidMap:
         if resultMap.get(uid) is None:
@@ -286,9 +287,15 @@ def calc_profile(uidMap,  tops = 3):
             #this is a tuple.
             appId,  metricId = appIdMetricId
             metricHandler = ubc.pf_metric_helper.getMetricHandler(metricId[2:],  appId)
-        
+            
+            if cur is not None:
+                appid_metric_label = metricHandler.get_profile_metric_label()
+                old_lines = cur.get(appid_metric_label)
+            
+            new_raw_lines = metricHandler.split_data_by_date(str_start_day, str_end_day, uidMap[uid][appIdMetricId])
+            
             #uidMap[uid][appIdMetricId] is a list of certain metric data list.
-            dataMap = metricHandler.calculateProfile(uidMap[uid][appIdMetricId])
+            dataMap = metricHandler.calculateProfile(new_raw_lines, old_lines, param)
             
             if dataMap is not None and len(dataMap) > 0:
                 '''

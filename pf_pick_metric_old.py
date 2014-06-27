@@ -1,24 +1,17 @@
 import sys
-import platform
 import time
 import traceback
 import gzip
 import libs.util.my_utils
+from dbmanager.pf_collection_manager import PFCollectionManager
 from dbmanager.pf_metric_collection_manager import PFMetricCollectionManager
-from dbmanager.pf_hwv_collection import PFHWVCollectionManager
-from dbmanager.pf_tags_collection_manager import PFTagsCollectionManager
+from externdata.app_filter import AppFilter
 import util.utils
 import ubc.pf_metric_helper
 import libs.redis.redis_manager
-
 import libs.util.logger
 import config.const
-
 import pymongo
-
-#Fix me. Should read from config file.
-metricCollector_4096_1807 =  {12: ('packagename',)}
-metricCollector_4096_7d3 =  {13: ('deviceinfo',)}
 
 def handle_data(arr,  metricMap):
     '''
@@ -58,7 +51,11 @@ def handle_data(arr,  metricMap):
             value = metricHandler.convertData(index,  arr[index])
         except Exception as e:
             print(e)
-        valueMap[strDescriptor] = value
+            value = None
+        if value == None:
+            return None
+        else:
+            valueMap[strDescriptor] = value
 
     #((appid,metricid), field map.)
     
@@ -67,6 +64,14 @@ def handle_data(arr,  metricMap):
 def __convert_appid_metricid(arr, appid, metricid):
     arr[1] = appid
     arr[0] = metricid
+    
+def __convert_virtual_metric(tupl, appid_lst, metricid_lst, value_map_lst):
+    appid_metricid, valueMap = tupl
+    app_id = appid_metricid[0]
+    metric_id = appid_metricid[1]
+    appid_lst.append(app_id)
+    metricid_lst.append(metric_id)
+    value_map_lst.append(valueMap)
 
 def insertOrUpdateUser(self,  cur, chunleiId,  cuid,  imei, metrics_list, recordTime, collection = None, str_date = None):
     
@@ -170,6 +175,8 @@ if __name__ == "__main__":
     
     current_collection_name = metricCollectionManager.final_getCollection(g_date)
     
+    app_filter = AppFilter()
+    
     #fixme!!!!!!!
     #metricCollectionManager.drop_table()
     
@@ -204,6 +211,7 @@ if __name__ == "__main__":
     g_last_cuid = ''
     g_last_metric_data_list = []
     g_last_cur = None
+    
         
     while gCount > 0:
         
@@ -239,7 +247,22 @@ if __name__ == "__main__":
         '''tupl is ((4096,0x1807), { time:"2013-06-07 15:34:22", field_1:"value", field_2:"value" }) '''
         
         arr = line.strip().split(',')                
-                
+        
+        #Fixed me!!!!!!
+        if arr[0] != '0x1807':
+            continue
+        
+        if arr[0] == '0x1807':
+            package_name = arr[12]
+            package_name = util.utils.format_2_mongo_key_(package_name)
+            
+            #Filter the app which is no tag.
+            if app_filter.is_fit(package_name) is False:
+                continue
+            #If the app is in white list, we will raise it weight.
+            if app_filter.is_in_white_list(package_name) is False:
+                 arr[20] = '1'
+                 
         #Parse raw data.
         tupl = handle_data(arr,  metricMap)   
         if tupl is None:
@@ -286,44 +309,19 @@ if __name__ == "__main__":
             __convert_appid_metricid(arr, '1', '0x1')
             tupl = handle_data(arr,  metricMap)
             if tupl is not None:
-                appid_metricid, valueMap = tupl
-                app_id = appid_metricid[0]
-                metric_id = appid_metricid[1]
-                appid_lst.append(app_id)
-                metricid_lst.append(metric_id)
-                value_map_lst.append(valueMap)
+                __convert_virtual_metric(tupl, appid_lst, metricid_lst, value_map_lst)
             #province
             __convert_appid_metricid(arr, '1', '0x2')
             tupl = handle_data(arr,  metricMap)
             if tupl is not None:
-                appid_metricid, valueMap = tupl
-                app_id = appid_metricid[0]
-                metric_id = appid_metricid[1]
-                appid_lst.append(app_id)
-                metricid_lst.append(metric_id)
-                value_map_lst.append(valueMap)
-            #package_name
-            if raw_metric_id == '0x1807':
-                __convert_appid_metricid(arr, '1', '0x3')
-                tupl = handle_data(arr,  metricMap)
-                if tupl is not None:
-                    appid_metricid, valueMap = tupl
-                    app_id = appid_metricid[0]
-                    metric_id = appid_metricid[1]
-                    appid_lst.append(app_id)
-                    metricid_lst.append(metric_id)
-                    value_map_lst.append(valueMap)
+                __convert_virtual_metric(tupl, appid_lst, metricid_lst, value_map_lst)
             #calc chunleiid only if this user has 0x7d2 metric. 0x7d2 is account metric;
+            
             if raw_metric_id == '0x7d2':
                 __convert_appid_metricid(arr, '1', '0x4')
                 tupl = handle_data(arr,  metricMap)
                 if tupl is not None:
-                    appid_metricid, valueMap = tupl
-                    app_id = appid_metricid[0]
-                    metric_id = appid_metricid[1]
-                    appid_lst.append(app_id)
-                    metricid_lst.append(metric_id)
-                    value_map_lst.append(valueMap)
+                    __convert_virtual_metric(tupl, appid_lst, metricid_lst, value_map_lst)
         
         part2_total_duration += recordTime.getEllaspedTimeSinceLast()
                 
@@ -376,27 +374,13 @@ if __name__ == "__main__":
                         
                         insertOrUpdateUser(metricCollectionManager, g_last_cur, g_last_uid,  g_last_cuid,  g_last_imei,  g_last_metric_data_list, recordTime, None, g_date)
                         
-                        #It is weird when enter this section. Because remove this uid when handle metrics.
-                        '''
-                        if g_last_cur is not None and len(str(g_last_cur)) > 1000000:
-                            temp_elapsed = recordTime.getEllaspedTimeSinceLast()
-                            part8_total_duration += temp_elapsed
-                            libs.util.logger.Logger.getInstance().debugLog("insert big size: length of current cur is %s, size is %d, line num is: %d, using : %.3fs." % (g_last_uid, len(str(g_last_cur)), total_line, temp_elapsed)) 
-                        elif g_last_metric_data_list is not None and len(str(g_last_metric_data_list)) > 1000000:
-                            temp_elapsed = recordTime.getEllaspedTimeSinceLast()
-                            part8_total_duration += temp_elapsed
-                            libs.util.logger.Logger.getInstance().debugLog("update big size: length of current cur is %s, size is %d, line num is: %d, using : %.3fs." % (g_last_uid, len(str(g_last_metric_data_list)), total_line, temp_elapsed)) 
-                        part8_total_duration += recordTime.getEllaspedTimeSinceLast()
-                        '''
-                        #raise util.pf_exception.PFExceptionWrongStatus()
                     except util.pf_exception.PFExceptionWrongStatus:
-                        print('22222')
+                        print('PFExceptionWrongStatus.')
                         libs.util.logger.Logger.getInstance().errorLog('mongodb happened some error, wait reconnect......')
                         time.sleep(10)
                     except util.pf_exception.PFExceptionFormat:
-                        print('33333')
+                        print('PFExceptionFormat.')
                         libs.util.logger.Logger.getInstance().errorLog('Format is Wrong: ' + ','.join([g_last_uid, ]))
-                        #libs.util.logger.Logger.getInstance().errorLog('Format is Wrong: ' + ','.join([g_last_uid, str(g_last_metric_data_list)]))
                         writeSuccess = True
                         g_last_uid = ""
                     else:
@@ -442,8 +426,6 @@ if __name__ == "__main__":
                 metric_map[PFMetricCollectionManager.final_getMetricDataLabel()] = metricHandler.handle_raw_data(metric_map[PFMetricCollectionManager.final_getMetricDataLabel()], valueMap) 
                 
                 part12_total_duration += recordTime.getEllaspedTimeSinceLast()
-                #Fix me!!!!!! Verify it is wrong to put here.
-                #g_last_metric_data_list.append(metric_map)
                 
                 i += 1
             

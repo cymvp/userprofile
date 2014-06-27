@@ -101,7 +101,7 @@ class PFCollectionManager(Singleton):
         return cur.get(PFCollectionManager.final_getProfileTagLabel())
     
     #May be it need override, because some collection is too big to copy it all.
-    def __final_getTagsByUidWithCache__(self,  uid):
+    def final_getTagsByUidWithCache(self,  uid):
         #Called by collection points to this collection;
         #Example: device collection calls this function of app collection to get tag list of app.
         #uid is the doc _id of app collection. 

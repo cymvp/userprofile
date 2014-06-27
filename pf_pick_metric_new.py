@@ -118,7 +118,7 @@ class work_thread(threading.Thread):
                         value_map_lst.append(valueMap)
                     #package_name
                     if raw_metric_id == '0x1807':
-                        self.__convert_appid_metricid(arr, '1', '0x3')
+                        self.__convert_appid_metricid(arr, '1', '0x1807')
                         tupl = handle_data(arr,  metricMap)
                         if tupl is not None:
                             appid_metricid, valueMap = tupl

@@ -3,6 +3,8 @@ from dbmanager.pf_metric_collection_manager import PFMetricCollectionManager
 
 class PFAPPCollectionManager(PFCollectionManager):
     __PROFILE_COLLCETION_PREFIX = 'profile_app_collection'
+    cache_cursors = None
+    cache_data = {}
     
     @staticmethod
     def final_getProfileTagLabel():
@@ -51,49 +53,14 @@ class PFAPPCollectionManager(PFCollectionManager):
             self.mDBManager.insert(cur,  collection)
         else:
             self.mDBManager.update(self.__buildUid__(cur[PFCollectionManager.final_getUidLabel()]),  cur,  collection)
-    
-    '''
-    def insertOrUpdateCollection(self,  _id,  valueMap,  collection = None):
-        #_id is model.
-        if collection is None:
-            collection = self.mDBManager.getCollection(self.__getCollectionName__())
-        #check whether this document existed, checked by chunleiid.
-        c = self.isDocExist(_id)
-        
-        if c is None:
-            #insert.
-            userMap = self.__buildDocUser__(_id)
-            #Because len(userMap) is 1, only has '_id'.
-            valueMap[next(userMap.__iter__())] = userMap[next(userMap.__iter__())]
-            self.mDBManager.insert(valueMap,  collection)
-            valueMap.pop(PFAPPCollectionManager.final_getUidLabel())
-        else:
-            #update
-            tmpLst = []
-            userMap = c.__getitem__(0)
-            for statName in valueMap: 
-                    userMap[statName] = valueMap[statName]
-            self.mDBManager.update(self.__buildUid__(_id),  userMap,  collection)  
-     '''       
+         
    
     def __buildDocUser__(self,  _id):
         userMap = {}
         userMap[PFAPPCollectionManager.final_getUidLabel()] = _id
         return userMap
 
-    #override
-    #def getMetaInfo(self, dicMap):
-        '''
-        resultMap is:
-        {
-            ''foreign_key_list': [
-            'C8812',
-            ]
-        }
-        '''
-        #resultMap = {}
-        #resultMap['forgien_key_list'] = [dicMap.get(PFMetricCollectionManager.final_getLabelModel()),]
-        #return resultMap
+    
         
        
        

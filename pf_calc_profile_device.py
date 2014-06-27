@@ -1,8 +1,4 @@
 import sys
-import dbmanager.pf_metric_collection_manager
-import dbmanager.pf_device_collection_manager
-import dbmanager.pf_tags_collection_manager
-import dbmanager.pf_taguid_collection_manager
 import util.utils
 import libs.util.logger
 import libs.util.my_utils
@@ -10,15 +6,17 @@ import util.calc_tag
 import ubc.pf_metric_helper
 from config.const import *
 from mythread.write_thread import write_thread
-import time
+import datetime
 
 from dbmanager.pf_hwv_collection import PFHWVCollectionManager
 from dbmanager.pf_province_collection import PFProvinceCollectionManager
 from dbmanager.pf_app_collection import PFAPPCollectionManager
 from dbmanager.pf_collection_manager import PFCollectionManager
+from dbmanager.pf_metric_collection_manager import PFMetricCollectionManager
+from dbmanager.pf_device_collection_manager import PFDeviceCollectionManager
+from dbmanager.pf_tags_collection_manager import PFTagsCollectionManager
 
-
-def consist_of_foreign_data(key_list, foreign_tuple, collection_name, old_linked_node_map):
+def __consist_of_foreign_data(key_list, foreign_tuple, collection_name):
     '''
     result is:
         {
@@ -32,24 +30,43 @@ def consist_of_foreign_data(key_list, foreign_tuple, collection_name, old_linked
     metric_id = foreign_tuple[1]
     metricHandler = ubc.pf_metric_helper.getMetricHandler('%x' % int(metric_id, 16),  str(app_id))
     foreign_label =  metricHandler.get_profile_metric_label()
-    old_linked_node = old_linked_node_map.get(foreign_label)
-    #Fix me. hard code about app collection key doc.
-    if old_linked_node is not None and old_linked_node.get('linked_list') is not None:
-        if app_id == '1' and metric_id == '0x3':
-            key_list.extend(old_linked_node.get('linked_list'))
-            key_list = list(set(key_list))
     l = len(key_list)
-    if l > 20:
-        l = 20
     return {foreign_label:{'linked_collection' : collection_name, 'linked_list' : key_list[0: l]}}
-'''
-def func(i, j):
-    time.sleep(5)
-    print(i)
-    print(j)
-'''
+
+
+def __create_4096_1807_linked_node(cur):
+    appId,  metricId = ('4096', '0x1807')
+    result_linked_node_map = {}
+    metricHandler = ubc.pf_metric_helper.getMetricHandler(metricId[2:],  appId)
+    
+    if cur is not None:
+        appid_metric_label = metricHandler.get_profile_metric_label()
+        old_lines = cur.get(appid_metric_label)
+        if old_lines is not None and len(old_lines) > 0:
+            old_lines = old_lines[0]
+            for package_name in old_lines:
+                if result_linked_node_map.get((appId, metricId)) is None:
+                    result_linked_node_map[(appId, metricId)] = []
+                result_linked_node_map[(appId, metricId)].append(package_name)
+    return result_linked_node_map
+
+def __parse_date_params(str_date_duration):
+    str_day_duration_arr = str_date_duration.split('-')
+    if len(str_day_duration_arr) == 2:
+        str_start_day = str_day_duration_arr[0]
+        str_end_day = str_day_duration_arr[1]
+    elif len(str_day_duration_arr) == 1:
+        str_start_day = str_day_duration_arr[0]
+        str_end_day = str_day_duration_arr[0]
+    else:
+        str_start_day = None
+        str_end_day = None   
+    return (str_start_day, str_end_day)  
+
 if __name__ == "__main__":  # nDays,  mTop
-    i = 0
+    if len(sys.argv) != 4:
+        print("Error params...... python pf_calc__profile_device.py nDays, mTop ")
+        sys.exit(1)
     
     libs.util.logger.Logger.getInstance().setLogFilePrefixName('')
     libs.util.logger.Logger.getInstance().setLogFileSurfixName('_device')
@@ -59,24 +76,14 @@ if __name__ == "__main__":  # nDays,  mTop
     
     total_device_count = 0
     
-    g_foreign_tuple_list = [('1', '0x1'), ('1', '0x2'), ('1', '0x3')]
-    g_foreign_collection_map = {g_foreign_tuple_list[0]: PFHWVCollectionManager.getCollectionName(), 
-                                g_foreign_tuple_list[1]: PFProvinceCollectionManager.getCollectionName(),
-                                g_foreign_tuple_list[2]: PFAPPCollectionManager.getCollectionName()}
-    '''
-    if len(sys.argv) == 5:
-        tagManager = dbmanager.pf_tags_collection_manager.PFTagsCollectionManager()
-        #tagUidsManager = dbmanager.pf_taguid_collection_manager.PFTagUidsCollectionManager()
-        tagCursors = tagManager.getAllDoc()
-        tagLst = dbmanager.pf_tags_collection_manager.PFTagsCollectionManager.final_convertCursor(tagCursors)
-        #for tagMap in tagLst:
-        #    tagUidsManager.insertOrUpdateCollection(tagMap, '123456')
-        sys.exit(1)
-    '''
-    if len(sys.argv) != 4:
-        print("Error params...... python pf_calc__profile_device.py nDays, mTop ")
-        sys.exit(1)
-        
+    g_foreign_tuple_list = [('1', '0x1'), ('1', '0x2')]
+    g_foreign_collection_map = {g_foreign_tuple_list[0]: PFHWVCollectionManager.getCollectionName(),  g_foreign_tuple_list[1]: PFProvinceCollectionManager.getCollectionName()} 
+    
+    g_final_foreign_tuple_list = g_foreign_tuple_list.copy()
+    g_final_foreign_collection_map = g_foreign_collection_map.copy()
+    g_final_foreign_tuple_list.append(('4096', '0x1807'))
+    g_final_foreign_collection_map[('4096', '0x1807')] = PFAPPCollectionManager.getCollectionName()
+      
     fMetricMap = libs.util.my_utils.openFile(sys.argv[3], 'r')
     
     metricMap = util.utils.loadMap(fMetricMap)
@@ -92,31 +99,36 @@ if __name__ == "__main__":  # nDays,  mTop
     
     recordTime.startTime()
         
-    metricManager = dbmanager.pf_metric_collection_manager.PFMetricCollectionManager()
-    userProfileManager = dbmanager.pf_device_collection_manager.PFDeviceCollectionManager()
-    tagManager = dbmanager.pf_tags_collection_manager.PFTagsCollectionManager()
-    #tagUidsManager = dbmanager.pf_taguid_collection_manager.PFTagUidsCollectionManager()
+    metricManager = PFMetricCollectionManager()
+    userProfileManager = PFDeviceCollectionManager()
+    tagManager = PFTagsCollectionManager()
+   
     #Fixed me!!!!!!
     #userProfileManager.drop_table()
-    
-    #rdisConfigure = rdis.configure.Configure()
-    #tagUidsRedis = rdis.tagredis.TagUidsRedis(rdisConfigure)
 
-    # For calculating metric data of profile collection.
-    strToday = util.utils.getStrToday()
-    monthLst = util.utils.calc_months(strToday,  int(sys.argv[1]))
+    str_start_day, str_end_day = __parse_date_params(sys.argv[1])
+    if str_start_day == None or str_end_day == None:
+        print("Date params error...... python pf_calc__profile_device.py 20140621-20140625, mTop ")
+        sys.exit(1) 
+    
+    date_src = datetime.date(int(str_start_day[0:4]), int(str_start_day[4:6]), int(str_start_day[6:8]))
+    date_des = datetime.date(int(str_end_day[0:4]), int(str_end_day[4:6]), int(str_end_day[6:8]))
+    diff_days = date_des - date_src
+    diff_days = diff_days.days
+    
+    monthLst = util.utils.calc_months(str_start_day,  diff_days)
     
     #Get all documents of indicated months; documents is user metrics.
     cursorLst = util.utils.getCursorLst(metricManager, monthLst)
     #Parse all user and info,and save to map.
     
-        # For calculating tags of profile collection.
+    # For calculating tags of profile collection.
     tagCursors = tagManager.getAllDoc()
-    tagLst = dbmanager.pf_tags_collection_manager.PFTagsCollectionManager.final_convertCursor(tagCursors)
+    tagLst = PFTagsCollectionManager.final_convertCursor(tagCursors)
     
     tagObjectLst = []
     for t in tagLst:
-        tagObjectLst.append(dbmanager.pf_tags_collection_manager.PFTagsCollectionManager.final_convert2Tag(t)) 
+        tagObjectLst.append(PFTagsCollectionManager.final_convert2Tag(t)) 
     
     ellapsedTime = recordTime.getEllapsedTime()
     libs.util.logger.Logger.getInstance().debugLog("Call buildMetricData(): take %.3fs" % ellapsedTime)
@@ -133,27 +145,15 @@ if __name__ == "__main__":  # nDays,  mTop
                 libs.util.logger.Logger.getInstance().debugLog("total time of part2 is: %.3fs ." % part2_total_duration)
                 libs.util.logger.Logger.getInstance().debugLog("total time of part3 is: %.3fs ." % part3_total_duration)
                 libs.util.logger.Logger.getInstance().debugLog("total time of part4 is: %.3fs ." % part4_total_duration)
-            #Fixed me!!!!!! temp py.
+            
             if total_device_count >= max_count:
                 break
             
-            uid = cur[dbmanager.pf_collection_manager.PFCollectionManager.final_getUidLabel()]
-            '''
-            if uid != '865854010357857Kr7Ri':
-                continue
-            else:
-                print("Find it!")
-            '''
+            uid = cur[PFCollectionManager.final_getUidLabel()]
+
             uidMap, userInfoMap = util.utils.buildMetricData_new(metricManager,  cur, metricMap, g_foreign_tuple_list)
             part1_total_duration += recordTime.getEllaspedTimeSinceLast()
             
-            #sys.argv[2] is refered days.
-            resultMap = util.utils.calc_profile(uidMap,  sys.argv[2])
-            part2_total_duration += recordTime.getEllaspedTimeSinceLast()
-
-            cuid = userInfoMap[uid].get(dbmanager.pf_device_collection_manager.PFCollectionManager.final_getCUidLabel())
-            imei = userInfoMap[uid].get(dbmanager.pf_device_collection_manager.PFCollectionManager.final_getIMEILabel())
-
             #merge_new_data_map()
             cur = userProfileManager.isDocExist(uid)
             if cur is None or cur.count() == 0:
@@ -162,20 +162,31 @@ if __name__ == "__main__":  # nDays,  mTop
                 cur = next(cur.__iter__())
                 old_linked_node_map = PFCollectionManager.final_get_linked_node_by_cur(cur)
             #till here, Performance: 4000/10s on PC.
+            
+            #sys.argv[2] is refered days.
+            resultMap = util.utils.calc_profile(uidMap, str_start_day, str_end_day, cur, None, sys.argv[2])
+            part2_total_duration += recordTime.getEllaspedTimeSinceLast()
+
+            cuid = userInfoMap[uid].get(PFCollectionManager.final_getCUidLabel())
+            imei = userInfoMap[uid].get(PFCollectionManager.final_getIMEILabel())
 
             if userInfoMap[uid].get('foreign_key_list') is None or len(userInfoMap[uid].get('foreign_key_list')) == 0:
                 foreign_map = {}
             else:
                 foreign_map = userInfoMap[uid]['foreign_key_list']
-            #userInfoMap[uid]['foreign_key_list'] is: {(1,1) : ['ZTE N807', 'ZTE N807'], (1,2):['beijing', 'shanghai']}
+                
+            '''userInfoMap[uid]['foreign_key_list'] is: {(1,1) : ['ZTE N807', 'ZTE N807'], (1,2):['beijing', 'shanghai']}'''
+            linked_node_1807_map = __create_4096_1807_linked_node(resultMap[uid])
+            if linked_node_1807_map is not None and len(linked_node_1807_map) > 0:
+                foreign_map[next(linked_node_1807_map.keys().__iter__())] = next(linked_node_1807_map.values().__iter__())
             
             for foreign_tuple in foreign_map:
-                if foreign_tuple not in g_foreign_tuple_list:
+                if foreign_tuple not in g_final_foreign_tuple_list:
                     continue
-                foreign_collection_name = g_foreign_collection_map[foreign_tuple]
+                foreign_collection_name = g_final_foreign_collection_map[foreign_tuple]
                 key_list = foreign_map[foreign_tuple]
                 
-                foreign_data_map = consist_of_foreign_data(key_list, foreign_tuple, foreign_collection_name, old_linked_node_map)
+                foreign_data_map = __consist_of_foreign_data(key_list, foreign_tuple, foreign_collection_name)
 
                 if resultMap[uid].get(userProfileManager.final_get_label_linkde_node()) is None:
                     resultMap[uid][userProfileManager.final_get_label_linkde_node()] = {} 
@@ -185,7 +196,7 @@ if __name__ == "__main__":  # nDays,  mTop
             cur, is_insert = userProfileManager.merge_new_data_map(cur, uid, cuid, imei, resultMap[uid])
             
             tagMap, userInfoMap = util.calc_tag.calc_tags(userProfileManager, cur,  tagLst, tagObjectLst)
-            #part2_total_duration += recordTime.getEllaspedTimeSinceLast()
+            
             '''profileMap is:
                 "profile_tags":[  
                        {'tagid1':123, 'name': n880e, 'category': model},  
@@ -198,7 +209,7 @@ if __name__ == "__main__":  # nDays,  mTop
             }'''
                 
             for uid in tagMap:
-                profileMap = {dbmanager.pf_device_collection_manager.PFDeviceCollectionManager.final_getProfileTagLabel():tagMap[uid]}
+                profileMap = {PFDeviceCollectionManager.final_getProfileTagLabel():tagMap[uid]}
                 cur, temp_flag = userProfileManager.merge_new_data_map(cur, uid, cuid, imei, profileMap)
                 write_thread.write_to_queue(userProfileManager.getCollectionName(), cur, is_insert)
             

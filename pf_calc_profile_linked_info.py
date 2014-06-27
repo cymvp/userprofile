@@ -63,7 +63,7 @@ if __name__ == "__main__":
         tagObjectLst.append(PFTagsCollectionManager.final_convert2Tag(t)) 
 
     if os.path.basename(sys.argv[3]) == 'metric_map_app.txt':
-        g_foreign_tuple_list = [('1', '0x3')]
+        g_foreign_tuple_list = [('1', '0x1807')]
         g_CollectionManager = PFAPPCollectionManager()
     if os.path.basename(sys.argv[3]) == 'metric_map_province.txt':
         g_foreign_tuple_list = [('1', '0x2')]
@@ -117,7 +117,7 @@ if __name__ == "__main__":
             #sys.argv[2] is top.
             #calc_profile: Search from metrics_collection, loop in uid doc.
             #calc_profile() will not distinct linked foreign key, so we should exclude them from uidMap in calling buildMetricData().
-            device_metric_map = util.utils.calc_profile(uidMap, sys.argv[2])
+            device_metric_map = util.utils.calc_profile(uidMap, None, None, None, sys.argv[2])
            
             #resultMap is doc of certain collection, distinct by _id.
             part2_total_duration += recordTime.getEllaspedTimeSinceLast()

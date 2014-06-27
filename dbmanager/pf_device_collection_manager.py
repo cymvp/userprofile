@@ -4,7 +4,7 @@ from dbmanager.pf_hwv_collection import PFHWVCollectionManager
 from dbmanager.pf_province_collection import PFProvinceCollectionManager
         
 class PFDeviceCollectionManager(PFCollectionManager):
-    __PROFILE_COLLCETION_PREFIX = 'profile_device_collection'
+    __PROFILE_COLLCETION_PREFIX = 'test_profile_device_collection'
     cache_cursors = None
     cache_data = {}
     
@@ -100,7 +100,7 @@ class PFDeviceCollectionManager(PFCollectionManager):
         if collection_name == PFDeviceCollectionManager.getCollectionName():
             collection_manager = PFDeviceCollectionManager()
         for k in key_list:
-            tg_list = collection_manager.__final_getTagsByUidWithCache__(k)
+            tg_list = collection_manager.final_getTagsByUidWithCache(k)
             for tg in tg_list:
                 tag_id = tg.get(collection_manager.final_getUidLabel())
                 if tag_id_map.get(tag_id) is None:

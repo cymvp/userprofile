@@ -99,7 +99,7 @@ class PFUserCollectionManager(PFCollectionManager):
             if collection_name == PFDeviceCollectionManager.getCollectionName():
                 collection_manager = PFDeviceCollectionManager()
             for k in key_list:
-                tg_list = collection_manager.__final_getTagsByUidWithCache__(k)
+                tg_list = collection_manager.final_getTagsByUidWithCache(k)
                 tag_list.extend(tg_list)
             return tag_list
     '''    
