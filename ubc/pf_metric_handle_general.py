@@ -22,7 +22,7 @@ class PFMetricHandler_Appid_Metricid:
         #timestamp
         if index == 8:
             t = datetime.datetime.fromtimestamp(int(value))
-            return str(t)
+            return t.strftime("%Y%m%d-%H:%M:%S")
         return value
     
     #@override
@@ -72,7 +72,6 @@ class PFMetricHandler_Appid_Metricid:
         return None
         
     def __getProfileMetricLabel__(self,  prefix):
-        ''' return prefix_4096_1807 '''
         a = self.__class__.__name__
         i = a.find('_')
         return prefix + a[i:]
@@ -82,6 +81,40 @@ class PFMetricHandler_Appid_Metricid:
     
     def split_data_by_date(self,str_start_day, str_end_day, lines):
         return lines
+    
+    def final_split_data_by_date(self, str_start_day, str_end_day, lines):
+        #lines is all data of this metric, stored in metrics_collection.
+        result_lines = [{}]
+        if lines is None or len(lines) == 0:
+            return lines
+        for key_ in lines[0]:
+            result_map = {}
+            for str_date in lines[0][key_]:
+                if str_date >= str_start_day and str_date <= str_end_day:
+                     result_map[str_date] = lines[0][key_][str_date]
+            if len(result_map) > 0:
+                result_lines[0][key_] = result_map
+        if len(result_lines[0]) <= 0:
+            result_lines = None
+        return result_lines
+    
+    def final_consist_metric_data(self, metric_data_lst, new_raw_value_map, new_merge_value_map, str_key_name, str_date_name = None):
+        if str_date_name == None or str_date_name == 'timestamp':
+            str_date = new_raw_value_map.get('timestamp')[0:8]
+        else:
+            str_date = new_raw_value_map.get(str_date_name)
+            
+        str_key = new_raw_value_map.get(str_key_name)
+        
+        if len(metric_data_lst) == 0:
+            metric_data_lst.append({})
+        if metric_data_lst[0].get(str_key) is None:
+            metric_data_lst[0][str_key] = {}
+        if metric_data_lst[0][str_key].get(str_date) is None:
+            data_map = new_merge_value_map
+            metric_data_lst[0][str_key][str_date] = data_map
+               
+        return metric_data_lst
     
     @staticmethod 
     def final_getAppIdMetricId(s):
@@ -102,21 +135,9 @@ class PFMetricHandler_4096_1807(PFMetricHandler_Appid_Metricid):
     
     __PROFILE_METRIC_LABEL__ = 'app_used'
     
+    #override
     def split_data_by_date(self,str_start_day, str_end_day, lines):
-        #lines is all data of this metric, stored in metrics_collection.
-        result_lines = [{}]
-        if lines is None or len(lines) == 0:
-            return lines
-        for package_name in lines[0]:
-            app_map = {}
-            for str_date in lines[0][package_name]:
-                if str_date >= str_start_day and str_date <= str_end_day:
-                     app_map[str_date] = lines[0][package_name][str_date]
-            if len(app_map) > 0:
-                result_lines[0][package_name] = app_map
-        if len(result_lines[0]) <= 0:
-            result_lines = None
-        return result_lines
+        return self.final_split_data_by_date(str_start_day, str_end_day, lines)
     
     def calculateProfile(self,  lines, old_lines = None, param = None):
         
@@ -637,53 +658,105 @@ class PFMetricHandler_4096_7d2(PFMetricHandler_Appid_Metricid):
                 app, account = account_info[0:2]
                 resultMap[(app, account)] = account
         return resultMap
-        
+
+      
         
 class PFMetricHandler_4096_7d1(PFMetricHandler_Appid_Metricid):
     
     __PROFILE_METRIC_LABEL__ = 'device_usage_time_by_day'
     
+    #override
+    def split_data_by_date(self, str_start_day, str_end_day, lines):
+        #根据日期段,选出在metrics_collection表里的metrics.metric_data数组里,符合要求的数据; lines为: metrics.metric_data数组.
+        return self.final_split_data_by_date(str_start_day, str_end_day, lines)
+    
+    #override
+    def handle_raw_data(self, metric_data_lst, value_map):
+        def __consist_profile_data(value_map):
+            result_map = {}
+            result_map['duration'] = value_map['duration']
+            return result_map
+        
+        new_merge_value_map = __consist_profile_data(value_map)
+        return self.final_consist_metric_data(metric_data_lst, value_map, new_merge_value_map, 'hour')  
+    
+    #
     def calculateProfile(self,  lines, old_lines = None, param = None):
-        tempMap = {}
-        hourCountMap = {}
-        resultLst = []
-        
-        for dataMap in lines:
-            t = dataMap['hour']
-            if hourCountMap.get(t) is None:
-                hourCountMap[t] = 1
-            else:
-                hourCountMap[t] += 1
-                
-            if tempMap.get(t) is None:
-                tempMap[t] = int(dataMap['duration'])
-            else:
-                tempMap[t] += int(dataMap['duration'])
-        
-        
-        
-        for t in tempMap:
-            tempMap[t] = int(tempMap[t]) / int(hourCountMap[t])
-            resultLst.append({str(t) : tempMap[t]})
-
-        
-        
-        resultLst = sorted(resultLst,  key=lambda d:d[next(d.__iter__())], reverse = True)
-            
-        #print(resultLst)    
+        def __calculate_app(package_name, raw_app_data, old_app_data):
+           min_str_date = '20300101'
+           max_str_date = '19700101'
+           new_total_upload_count = 0
+           new_total_duration = 0
+           import_flag = 0
+           if old_app_data == None:
+               old_app_data = {'first_upload_date':min_str_date, 'last_upload_date': max_str_date, 'total_upload_count': 0, 'avg_duration': 0}
+           old_last_upload_date = old_app_data.get('last_upload_date')
+           old_first_upload_date = old_app_data.get('first_upload_date')  
+           for str_date in raw_app_data:
+               if str_date <= old_last_upload_date:
+                   continue
+               if min_str_date > str_date:
+                   min_str_date = str_date
+               if max_str_date < str_date:
+                   max_str_date = str_date
+               new_total_upload_count += 1
+               new_total_duration += int(raw_app_data[str_date].get('duration'))
+           if max_str_date > old_last_upload_date:
+               old_app_data['last_upload_date'] = max_str_date
+           if min_str_date < old_first_upload_date:
+               old_app_data['first_upload_date'] = min_str_date
+           old_app_data['avg_duration'] = int((old_app_data['avg_duration'] * old_app_data['total_upload_count'] + new_total_duration) / (new_total_upload_count + old_app_data['total_upload_count']))
+           old_app_data['total_upload_count'] += new_total_upload_count    
+           return old_app_data
+           
         '''
-                resultLst is sorted by duration;
-                device_usage_time_by_day: [
-                {00: '30'},  {01: '30'},  {02: '30'},  {03: '30'},
-                {04: '1'},  {05: '30'},  {06: '30'},  {07: '30'},
-                {08: '1'},  {09: '30'},  {10: '30'},  {11: '30'},
-                {12: '1'},  {13: '30'},  {14: '30'},  {15: '30'},
-                {16: '1'},  {17: '30'},  {18: '30'},  {19: '30'},
-                {20: '1'},  {21: '30'},  {22: '30'},  {23: '30'}
-                ]
-            '''
-        return {self.__getProfileMetricLabel__('device_usage_time_by_day'): resultLst}   
+        lines is:
+        [
+          {
+            com_android_mms:{
+                20140624:{'timestamp': '2014-05-14 08:14:09', 'launch_count': '1', 'duration': '5'}
+                20140623:{'timestamp': '2014-05-14 08:14:09', 'launch_count': '1', 'duration': '5'}
+            }
+            com_xxx_xxx:{},
+          } #Only one element in lines for performance.
+        ]
+        old_lines is:
+        [ 
+          {
+            com_android_mms:{first_upload_date:'20140624', 'last_upload_date':'20140624', total_upload_count = '100', avg_launch_count = '10', "avg_duration" : 20, is_important = '1'}
+            com_xxx_xxx:{}
+          } #Only one element in old_lines for performance.
+        ]    
+        '''
+        #countMap = {}
+        tempMap = {}
+        appLst = [{}]
+        if len(lines[0]) == 0:
+            return old_lines
+        dataMap = lines[0]
         
+        for str_hour in dataMap:
+            
+            if old_lines == None:
+                old_app_data = None
+            else:
+                old_app_data = old_lines[0].get(str_hour)
+            
+            tempMap[str_hour] = __calculate_app(str_hour, dataMap[str_hour], old_app_data)
+              
+        #result_lst = sorted(tempMap.items() , key=lambda d:d[1]['avg_duration'], reverse = True)
+        '''
+        i = 0
+        tops = 50
+        if tops > len(result_lst):
+            tops = len(result_lst)
+        while i <= tops - 1:
+            appLst[0][result_lst[i][0]] = tempMap[result_lst[i][0]]
+            i += 1
+        '''
+        return {self.__getProfileMetricLabel__(self.__PROFILE_METRIC_LABEL__):[tempMap]}
+        
+ 
     def calculateTag(self,  lines,  tagLst):
         super(PFMetricHandler_4096_7d1,  self).calculateTag(lines,  tagLst)
         resultLst = []
