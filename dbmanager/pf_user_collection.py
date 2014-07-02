@@ -83,8 +83,9 @@ class PFUserCollectionManager(PFCollectionManager):
         return userMap
     
     def getTagsByAccountId(self,  accountId):     
-        c = self.__getDocByUid__(accountId)
-        
+        c = self.isDocExist(accountId)
+        if c is None or c.count() == 0:
+            return []
         uidData = next(c.__iter__())
         if uidData.get(PFUserCollectionManager.final_getProfileTagLabel()) is None:
             return []

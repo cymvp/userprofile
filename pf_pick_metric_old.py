@@ -1,3 +1,4 @@
+#coding:utf-8
 import sys
 import time
 import traceback
@@ -126,6 +127,7 @@ def insertOrUpdateUser(self,  cur, chunleiId,  cuid,  imei, metrics_list, record
         libs.util.logger.Logger.getInstance().errorLog('!!!! %s' % e)
         raise util.pf_exception.PFExceptionWrongStatus
 
+
 if __name__ == "__main__":
     
     #print (getHashCode('http://outofmemory.cn/'))
@@ -170,11 +172,39 @@ if __name__ == "__main__":
     libs.util.logger.Logger.getInstance().setLogFileSurfixName('_pickmetric')
 
     fInputFile = None
+    
+    g_date_controller = util.utils.DateController.get_instance(g_date)
      
     metricCollectionManager = PFMetricCollectionManager()
     
+    #start: 获得stat doc的
+    c = metricCollectionManager.isDocExist('stat')
+    
+    #不存在,则创建一个;
+    if c is None or c.count() == 0:
+        m = {'_id': 'stat', 'current_line': 0, 'is_working': 0, 'last_update_date':g_date, 'first_update_date': g_date}
+        metricCollectionManager.create_stat_doc(m)   
+    
+    is_busy = metricCollectionManager.get_stat_busy()
+    
+    if is_busy > 0:
+        libs.util.logger.Logger.getInstance().debugLog("metrics_collection is busy, so just quit!")
+        sys.exit(1)
+    else:
+        metricCollectionManager.set_stat_busy(1)
+    
+    str_last_update_date = metricCollectionManager.get_stat_update_date()
+    
+    str_first_date =  metricCollectionManager.get_stat_update_date() 
+    
+    #因为只记录了第一个更新日期和最后一个更新日期,所以如果不连续更新的话, 就会出现不知道中间有哪些天没有做更新.所以要求必须按天连续导入日志数据.
+    if g_date_controller.is_consistent_day(g_date, str_first_date, str_last_update_date) == 0:
+        libs.util.logger.Logger.getInstance().debugLog("The day of metrics_collection updating must be consistent !")
+        sys.exit(1)
+        
     current_collection_name = metricCollectionManager.final_getCollection(g_date)
     
+    #Init app filter class object.
     app_filter = AppFilter()
     
     #fixme!!!!!!!
@@ -212,6 +242,7 @@ if __name__ == "__main__":
     g_last_metric_data_list = []
     g_last_cur = None
     
+    total_1807_count = 0
         
     while gCount > 0:
         
@@ -222,6 +253,7 @@ if __name__ == "__main__":
         
         if total_line % 100000 == 0:
             libs.util.logger.Logger.getInstance().debugLog("Processed total: %d lines." % total_line)
+            metricCollectionManager.set_stat_current_line(total_line)
         
         if config.const.FLAG_PICK_METRICS_FROM_REDIS == False:
             line = fInputFile.readline()
@@ -249,8 +281,13 @@ if __name__ == "__main__":
         arr = line.strip().split(',')                
         
         #Fixed me!!!!!!
-        if arr[0] != '0x7d1':#0x7d1
+        
+        if arr[0] != '0x1808' and arr[0] != '0x1807':#0x7d1
             continue
+        if arr[0] == '0x1807':
+            total_1807_count += 1
+            if total_1807_count >= 1:
+                continue
         
         if arr[0] == '0x1807':
             package_name = arr[12]
@@ -260,8 +297,8 @@ if __name__ == "__main__":
             if app_filter.is_fit(package_name) is False:
                 continue
             #If the app is in white list, we will raise it weight.
-            if app_filter.is_in_white_list(package_name) is False:
-                 arr[20] = '1'
+            if app_filter.is_in_white_list(package_name) is True:
+                arr[20] = '1'
                  
         #Parse raw data.
         tupl = handle_data(arr,  metricMap)   
@@ -446,7 +483,17 @@ if __name__ == "__main__":
             g_uid_size_map[g_last_uid][0] += 1 
             
             part6_total_duration += recordTime.getEllaspedTimeSinceLast()
-                
+    
+    if str_first_date > g_date:
+        metricCollectionManager.set_stat_first_date(g_date)
+    
+    if str_last_update_date < g_date:
+        metricCollectionManager.set_stat_update_date(g_date)
+        
+    metricCollectionManager.set_stat_busy(0)
+    
+    metricCollectionManager.set_stat_current_line(0)
+    
     ellapsedTime = recordTime.getEllapsedTime()
     printProcess.printCurrentProcess(ellapsedTime, total_line) 
     

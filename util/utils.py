@@ -124,7 +124,44 @@ def getCursorLst(manager,  monthLst):
             cursorLst.append(curs)
     return cursorLst
 
+class DateController:
+    __instance = None
+    
+    @staticmethod
+    def get_instance(str_date):
+        if DateController.__instance == None:
+            DateController.__instance = DateController(str_date)
+        return DateController.__instance
+    
+    def __init__(self, str_date):
+        if str_date is None:
+            raise util.pf_exception.PFExceptionFormat()
+        
+        self.center_date = str_date
+        self.first_date = libs.util.utils.getNextDate(str_date,  5,  0)
+        self.last_date = libs.util.utils.getNextDate(str_date,  5,  1)
+    
+    def get_last_valid_date(self):
+        return self.last_date
 
+    def get_first_valid_date(self):
+        return self.first_date
+    
+    def is_valid_date(self, str_date):
+        if str_date >= self.first_date and str_date <= self.last_date:
+            return True
+        else:
+            return False
+    
+    def is_consistent_day(self, src_date, des_first_date, des_last_date):
+        if libs.util.utils.getNextDate(src_date,  1,  0) == des_first_date:
+            return -1
+        elif libs.util.utils.getNextDate(src_date,  1,  1) == des_last_date:
+            return 1
+        else:
+            return 0
+        
+    
 def buildMetricData(manager,  cursorLst, appId_metricId_map, foreign_tuple_lst = None, num = -1):
     '''userInfoMap is the map, which contains the cuid, imei, model of uid.
        uidMap is the map, which contains all metrics list of certain user.
@@ -291,6 +328,9 @@ def calc_profile(uidMap,  str_start_day, str_end_day, cur, param = None, tops = 
             if cur is not None:
                 appid_metric_label = metricHandler.get_profile_metric_label()
                 old_lines = cur.get(appid_metric_label)
+            
+            if appIdMetricId == ('36864', '0x1808'):
+                print('!!')
             
             new_raw_lines = metricHandler.split_data_by_date(str_start_day, str_end_day, uidMap[uid][appIdMetricId])
             

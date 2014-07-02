@@ -10,6 +10,7 @@ class PFMetricCollectionManager(PFCollectionManager):
     __UBC_METRIC_COLLCETION_PREFIX = 'test_metrics_collection_'
     cache_cursors = None
     cache_data = {}
+    stat_doc = None
     
     @staticmethod
     def final_getMetricIdLabel():
@@ -27,9 +28,6 @@ class PFMetricCollectionManager(PFCollectionManager):
     def final_getMetricDataLabel():
         return 'metric_data'
         
-    #@staticmethod
-    #def final_getLabelModel():
-    #    return 'model'
     
     @staticmethod
     def __buildMetricId(metricId):
@@ -74,6 +72,77 @@ class PFMetricCollectionManager(PFCollectionManager):
                 return metric
         return None
     
+    def __get_stat_doc(self):
+        #初始时;
+        _id = 'stat'
+        if PFMetricCollectionManager.stat_doc is None:     
+            c = self.isDocExist(_id)
+            #不存在,则创建一个,并赋值给stat_doc
+            if c is None or c.count() == 0:
+                return None
+            else:     
+                PFMetricCollectionManager.stat_doc = next(c.__iter__())        
+        return PFMetricCollectionManager.stat_doc 
+    
+    def set_stat_current_line(self, current_line_num):
+        m = self.__get_stat_doc()
+        if m is None:
+            return None
+        m['current_line'] = current_line_num
+        self.__update_stat_doc(m)
+    
+    def get_stat_busy(self):
+        m = self.__get_stat_doc()
+        if m is None:
+            return None
+        return m['is_working']
+
+    def set_stat_busy(self, is_working):
+        m = self.__get_stat_doc()
+        if m is None:
+            return None
+        m['is_working'] = is_working
+        self.__update_stat_doc(m)
+    
+    def get_stat_update_date(self):
+        m = self.__get_stat_doc()
+        if m is None:
+            return None
+        return m['last_update_date']
+    
+    def set_stat_update_date(self, update_date):
+        m = self.__get_stat_doc()
+        if m is None:
+            return None        
+        m['last_update_date'] = update_date
+        self.__update_stat_doc(m)
+    
+    def get_stat_first_date(self):
+        m = self.__get_stat_doc()
+        if m is None:
+            return None
+        return m['first_update_date']
+    
+    def set_stat_first_date(self, first_date):
+        m = self.__get_stat_doc()
+        if m is None:
+            return None        
+        m['first_update_date'] = first_date
+        self.__update_stat_doc(m)
+        
+    def create_stat_doc(self, m):
+        self.__update_stat_doc(m)
+    
+    def __update_stat_doc(self, m):
+        try:
+            collection = self.mDBManager.getCollection(self.__getCollectionName__())     
+            self.mDBManager.update(self.__buildUid__(m.get('_id')), m, collection)
+            PFMetricCollectionManager.stat_doc = m
+        except (pymongo.errors.TimeoutError,  pymongo.errors.AutoReconnect) as e:
+            libs.util.logger.Logger.getInstance().errorLog(traceback.format_exc())
+            libs.util.logger.Logger.getInstance().errorLog('!!!! %s' % e)
+            raise util.pf_exception.PFExceptionWrongStatus
+        
     #final method    
     def final_getCollection(self,  strDate = None):
         return self.mDBManager.getCollection(self.__getCollectionName__(strDate))

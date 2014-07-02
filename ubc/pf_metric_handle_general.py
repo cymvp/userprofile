@@ -91,20 +91,54 @@ class PFMetricHandler_Appid_Metricid:
             result_map = {}
             for str_date in lines[0][key_]:
                 if str_date >= str_start_day and str_date <= str_end_day:
-                     result_map[str_date] = lines[0][key_][str_date]
+                    result_map[str_date] = lines[0][key_][str_date]
             if len(result_map) > 0:
                 result_lines[0][key_] = result_map
         if len(result_lines[0]) <= 0:
             result_lines = None
         return result_lines
     
+    '''
+                        在handle_raw_data()中调用, 只能对时间相关的metric_data上调用;类似于如下格式:
+        metric_data_lst:
+        [
+          {
+            com_android_mms:{
+                20140624:{'timestamp': '2014-05-14 08:14:09', 'launch_count': '1', 'duration': '5'}
+                20140623:{'timestamp': '2014-05-14 08:14:09', 'launch_count': '1', 'duration': '5'}
+            },
+            com_xxx_xxx:{},
+          }
+        ] 
+    '''
+    '''
+             在metrics_collection表里有两种metric data的数据格式:
+      1 时间相关的metric data,这种metric类似上面的数据格式; 这种格式的数据,时间由时间戳生成;
+      2 时间无关的metric data,这种metric没有固定的格式;
+                       这种数据一般在device_collection等profile表里没有历史累积的需求(如duration, launch_count, wifi流量等), 所以按日计算profile表时,不需要精确到天, 所有不需要按日期来存储原始数据.
+                       如果这种数据在metrics_collection表中有重复导入相同天的情况, 也不会影响profile表数据的生成,因为不需要在profile表里的累加(其实也有相同问题, 比如model按出现次数进行权值累加,影响profile表外键的生成,但是不需太多考虑,因为一般uid的model基本固定,且都会进行外键计算).
+                      这种数据一般为如下两种:
+        (1) 外键metric_data,如model, chunleiid, province;
+        (2) 普通metric,如0x7d2这种帐户数据.
+                     一般这种数据, 依靠metrics_collection表的总doc来保证数据不重复导入,也就是在总doc里会记录最近导入的数据的日期.
+        
+    '''
     def final_consist_metric_data(self, metric_data_lst, new_raw_value_map, new_merge_value_map, str_key_name, str_date_name = None):
+        should_remove_timestamp = False
         if str_date_name == None or str_date_name == 'timestamp':
             str_date = new_raw_value_map.get('timestamp')[0:8]
+            should_remove_timestamp = True
         else:
             str_date = new_raw_value_map.get(str_date_name)
+        
+        if util.utils.DateController.get_instance(None).is_valid_date(str_date) == False:
+            return metric_data_lst
             
         str_key = new_raw_value_map.get(str_key_name)
+        
+        #This means this metric only one key, so we just use the str_key_name as the key name.
+        if str_key is None:
+            str_key = str_key_name
         
         if len(metric_data_lst) == 0:
             metric_data_lst.append({})
@@ -112,6 +146,9 @@ class PFMetricHandler_Appid_Metricid:
             metric_data_lst[0][str_key] = {}
         if metric_data_lst[0][str_key].get(str_date) is None:
             data_map = new_merge_value_map
+            #Because timestamp is as the key, so we remove timestamp data for cut down disk space.
+            if should_remove_timestamp == True and data_map.get('timestamp') is not None:
+                data_map.pop('timestamp')
             metric_data_lst[0][str_key][str_date] = data_map
                
         return metric_data_lst
@@ -123,14 +160,57 @@ class PFMetricHandler_Appid_Metricid:
             return None
         return (arr[-2],  arr[-1])
     
-    @staticmethod 
-    def final_getAppIdMetricId(s):
-        arr = s.split('_')
-        if len(arr) < 3:
-            return None
-        return (arr[-2],  arr[-1])
-    
-    
+    @staticmethod
+    def final_consist_data_by_key(raw_data_map_by_date, old_data_map, value_name_list):
+        min_str_date = '20300101'
+        max_str_date = '19700101'
+        new_total_upload_count = 0
+        
+        
+        new_data_map = None
+        
+        if old_data_map == None:
+            new_data_map = {'first_upload_date':min_str_date, 'last_upload_date': max_str_date, 'total_upload_count': 0}
+            for i in range(len(value_name_list)):
+                new_data_map['avg_' + value_name_list[i]] = 0
+        else:
+            new_data_map = old_data_map
+                
+        old_last_upload_date = new_data_map.get('last_upload_date')
+        old_first_upload_date = new_data_map.get('first_upload_date')
+        value_list = []  
+        for str_date in raw_data_map_by_date:
+            if str_date >= old_first_upload_date and str_date <= old_last_upload_date:
+                continue
+            if min_str_date > str_date:
+                min_str_date = str_date
+            if max_str_date < str_date:
+                max_str_date = str_date
+            new_total_upload_count += 1
+            
+            for i in range(len(value_name_list)):
+                if len(value_list) <= i:
+                    value_list.append(int(raw_data_map_by_date[str_date].get(value_name_list[i])))
+                else:
+                    value_list[i] += int(raw_data_map_by_date[str_date].get(value_name_list[i]))
+        
+        #Means no fit date for calculating.
+        if new_total_upload_count <= 0:
+            return old_data_map
+                    
+        if max_str_date > old_last_upload_date:
+            new_data_map['last_upload_date'] = max_str_date
+        if min_str_date < old_first_upload_date:
+            new_data_map['first_upload_date'] = min_str_date
+            
+        for i in range(len(value_name_list)):
+            avg_value_name = 'avg_' + value_name_list[i]
+            new_data_map[avg_value_name] = int((new_data_map[avg_value_name] * new_data_map['total_upload_count'] + value_list[i]) / (new_total_upload_count + old_data_map['total_upload_count']))
+        
+        new_data_map['total_upload_count'] += new_total_upload_count    
+        return new_data_map
+
+        
 class PFMetricHandler_4096_1807(PFMetricHandler_Appid_Metricid):
     
     __PROFILE_METRIC_LABEL__ = 'app_used'
@@ -140,41 +220,6 @@ class PFMetricHandler_4096_1807(PFMetricHandler_Appid_Metricid):
         return self.final_split_data_by_date(str_start_day, str_end_day, lines)
     
     def calculateProfile(self,  lines, old_lines = None, param = None):
-        
-        def __calculate_app(package_name, raw_app_data, old_app_data):
-            min_str_date = '20300101'
-            max_str_date = '19700101'
-            new_total_upload_count = 0
-            new_total_launch_count = 0
-            new_total_duration = 0
-            import_flag = 0
-            if old_app_data == None:
-                old_app_data = {'first_upload_date':min_str_date, 'last_upload_date': max_str_date, 'total_upload_count': 0, 'avg_launch_count': 0, 'avg_duration': 0}
-            old_last_upload_date = old_app_data.get('last_upload_date')
-            old_first_upload_date = old_app_data.get('first_upload_date')  
-            for str_date in raw_app_data:
-                if str_date <= old_last_upload_date:
-                    continue
-                if min_str_date > str_date:
-                    min_str_date = str_date
-                if max_str_date < str_date:
-                    max_str_date = str_date
-                new_total_upload_count += 1
-                new_total_launch_count += int(raw_app_data[str_date].get('launch_count'))
-                new_total_duration += int(raw_app_data[str_date].get('duration'))
-                import_flag  = int(raw_app_data[str_date].get('is_important'))
-                if import_flag is None or import_flag < 1:
-                    import_flag = 0
-            if max_str_date > old_last_upload_date:
-                old_app_data['last_upload_date'] = max_str_date
-            if min_str_date < old_first_upload_date:
-                old_app_data['first_upload_date'] = min_str_date
-            old_app_data['avg_launch_count'] = int((old_app_data['avg_launch_count'] * old_app_data['total_upload_count'] + new_total_launch_count) / (new_total_upload_count + old_app_data['total_upload_count']))
-            old_app_data['avg_duration'] = int((old_app_data['avg_duration'] * old_app_data['total_upload_count'] + new_total_duration) / (new_total_upload_count + old_app_data['total_upload_count']))
-            old_app_data['total_upload_count'] += new_total_upload_count    
-            old_app_data['is_important'] = import_flag
-            old_app_data['weight'] = old_app_data['is_important'] * 100000 + old_app_data['avg_launch_count']
-            return old_app_data
         
         '''
         lines is:
@@ -198,7 +243,7 @@ class PFMetricHandler_4096_1807(PFMetricHandler_Appid_Metricid):
         #countMap = {}
         tempMap = {}
         appLst = [{}]
-        if len(lines[0]) == 0:
+        if lines is None or len(lines[0]) == 0:
             return old_lines
         dataMap = lines[0]
         
@@ -209,21 +254,26 @@ class PFMetricHandler_4096_1807(PFMetricHandler_Appid_Metricid):
             else:
                 old_app_data = old_lines[0].get(packageName)
             
-            tempMap[packageName] = __calculate_app(packageName, dataMap[packageName], old_app_data)
+            new_data_map = self.final_consist_data_by_key(dataMap[packageName], old_app_data, ['launch_count', 'duration'])
             
-            #countMap[packageName] = int(dataMap[packageName]['avg_launch_count'])
-
-            #tempMap[packageName] = {'packagename':  packageName,  'launch_count': launch_count / upload_count,  'duration': duration / upload_count, 'upload_count' : upload_count}
-
-        #sortedTuple is : [('com.android.mms', 4), ('com.android.m', 1)] 
-        #countMap is {'com.android.mms': 4, 'com.android.m':1}      
-        #pass an iteratable object countMap.items() to sorted function, and for each element of this iterable object,  get the second element of each element.
-        
+            if new_data_map is None or len(new_data_map) == 0:
+                continue
+                
+            tempMap[packageName] = new_data_map
+            
+            import_flag = 0
+            for str_date in dataMap[packageName]:
+                import_flag  = int(dataMap[packageName][str_date].get('is_important'))
+                if import_flag is None or import_flag < 1:
+                    import_flag = 0
+                else:
+                    break
+            tempMap[packageName]['is_important'] = import_flag
+            tempMap[packageName]['weight'] = tempMap[packageName]['is_important'] * 100000 + tempMap[packageName]['avg_launch_count']
+            
+        #pass an iteratable object countMap.items() to sorted function, and for each element of this iterable object,  get the second element of each element.  
         result_lst = sorted(tempMap.items() , key=lambda d:d[1]['weight'], reverse = True)
-        
-        #sortedTuple = sorted(countMap.items(),  key=lambda d:d[1], reverse = True)
-        #print(tops)
-        #print(countMap)
+
         i = 0
         tops = 50
         if tops > len(result_lst):
@@ -292,9 +342,14 @@ class PFMetricHandler_4096_1807(PFMetricHandler_Appid_Metricid):
  'packagename': 'com.android.mms'
         }
         '''
+        data_map = __consist_profile_data(value_map)
+        
+        return self.final_consist_metric_data(metric_data_lst, value_map, data_map, 'packagename', 'collect_date')  
+        
         #collect_date is latest date.
         #timestamp is useless.
         #For performance.
+        '''
         package_name = value_map.get('packagename')
         str_date = value_map.get('collect_date')
         package_name = util.utils.format_2_mongo_key_(package_name)
@@ -308,6 +363,7 @@ class PFMetricHandler_4096_1807(PFMetricHandler_Appid_Metricid):
             metric_data_lst[0][package_name][str_date] = data_map
             
         return metric_data_lst
+        '''
 
 #Handle Model
 class PFMetricHandler_1_1(PFMetricHandler_Appid_Metricid):
@@ -345,7 +401,7 @@ class PFMetricHandler_1_1(PFMetricHandler_Appid_Metricid):
         category_name = 'model'
         tgs = tags.pf_tag_helpers.PFTagsHelper.final_getTagLstByCategory(tagLst, category_name)
         for tg in tgs:
-            if tg.isFitTag(str_model) :
+            if tg.isFitTag(str_model):
                 resultLst.append(tg)    
         return resultLst   
     
@@ -354,12 +410,6 @@ class PFMetricHandler_1_1(PFMetricHandler_Appid_Metricid):
 class PFMetricHandler_1_2(PFMetricHandler_Appid_Metricid):
     
     __PROFILE_METRIC_LABEL__ = 'province'
-    
-    def calculateProfile(self,  lines, old_lines = None, param = None):
-        #Never called now.
-        return None
-        #dataMap = lines[-1]
-        #return {self.__getProfileMetricLabel__('province'): [dataMap]}
     
     def handle_raw_data(self, metric_data_lst, value_map):
         v = next(value_map.values().__iter__())
@@ -395,12 +445,6 @@ class PFMetricHandler_1_3(PFMetricHandler_Appid_Metricid):
     
     __PROFILE_METRIC_LABEL__ = 'package_name'
     
-    def calculateProfile(self,  lines, old_lines = None, param = None):
-        #Never called now.
-        return None
-        #dataMap = lines[-1]
-        #return {self.__getProfileMetricLabel__('package_name'): [dataMap]}
-    
     def handle_raw_data(self, metric_data_lst, value_map):
         #means Should unique by v.
         package_name = value_map.get('package_name')
@@ -429,10 +473,7 @@ class PFMetricHandler_1_3(PFMetricHandler_Appid_Metricid):
 class PFMetricHandler_1_4(PFMetricHandler_Appid_Metricid):
     
     __PROFILE_METRIC_LABEL__ = 'device'
-    
-    def calculateProfile(self,  lines, old_lines = None, param = None):
-        return None
-    
+     
     def handle_raw_data(self, metric_data_lst, value_map):
         v = next(value_map.values().__iter__())
         v = util.utils.format_2_mongo_key_(v)
@@ -449,6 +490,7 @@ class PFMetricHandler_1_4(PFMetricHandler_Appid_Metricid):
         return None    
 
 #Handle App Tags.
+#Invoked by app_collection.
 class PFMetricHandler_2_1(PFMetricHandler_Appid_Metricid):
     
     __PROFILE_METRIC_LABEL__ = 'package_name'
@@ -560,20 +602,55 @@ class PFMetricHandler_4096_7d5(PFMetricHandler_Appid_Metricid):
     
     __PROFILE_METRIC_LABEL__ = 'network_usage'
     
+    #override
+    def handle_raw_data(self, metric_data_lst, value_map):
+        return self.final_consist_metric_data(metric_data_lst, value_map, value_map, PFMetricHandler_4096_7d5.__PROFILE_METRIC_LABEL__)  
+    
+    #override
+    def split_data_by_date(self, str_start_day, str_end_day, lines):
+        #根据日期段,选出在metrics_collection表里的metrics.metric_data数组里,符合要求的数据; lines为: metrics.metric_data数组.
+        return self.final_split_data_by_date(str_start_day, str_end_day, lines)
+    
     def calculateProfile(self,  lines, old_lines = None, param = None):
-        tempMap = {}
-        for dataMap in lines:
-            if dataMap.get('gprs') is None or int(dataMap.get('gprs')) < 0 or dataMap.get('wifi') is None or int(dataMap.get('wifi')) < 0:
-                continue
-            t = dataMap['timestamp']
-            if tempMap.get(t) is None:
-                tempMap[t] = dataMap
-        sortedTuple = sorted(tempMap.items(),  key=lambda d:d[0], reverse = True)
-        #dataMap = lines[-1]
-        if len(sortedTuple) <= 0:
-            return {self.__getProfileMetricLabel__('network_usage'): []} 
+        if lines is None or len(lines) == 0:
+            return old_lines
+        lines = lines[0]
+        
+        if old_lines == None or len(old_lines) == 0:
+            old_data_map = None
         else:
-            return {self.__getProfileMetricLabel__('network_usage'): [sortedTuple[0][1]]}   
+            old_data_map = old_lines[0]
+        
+        for str_single_label in lines:
+            
+            single_data_map = lines[str_single_label]
+            
+            sorted_list_by_date = sorted(single_data_map.items(),  key=lambda d:d[0][6:8], reverse = True)
+            
+            has_update = False
+            
+            #选出给定时间段内的metric数据中(如20140628-20140702), 最接近月末的那一天(按day排序,且大于28号), 且该月没有做过计算(由last_upload_date保证);
+            #一般不会跨月进行数据计算,如20140628-20140702,如果跨月,也会分月进行计算,也就是先读201406，再读201407;
+            for i in range(len(sorted_list_by_date)):
+                str_date = sorted_list_by_date[i][0]
+                data_map = sorted_list_by_date[i][1]
+                if str_date[6:8] >= '28':
+                    if data_map.get('gprs') is None or int(data_map.get('gprs')) < 0 or data_map.get('wifi') is None or int(data_map.get('wifi')) < 0:
+                        continue
+                    if old_data_map == None:
+                        old_data_map = {'first_upload_date':str_date, 'last_upload_date': '19700101', 'total_upload_count': 0, 'avg_gprs': 0, 'avg_wifi': 0}
+                    if str_date[0:6] > old_data_map['last_upload_date'][0:6]:
+                        old_data_map['last_upload_date'] = str_date 
+                        old_data_map['avg_gprs'] = int((old_data_map['avg_gprs'] * old_data_map['total_upload_count'] + int(data_map['gprs'])) / (1 + old_data_map['total_upload_count']))
+                        old_data_map['avg_wifi'] = int((old_data_map['avg_wifi'] * old_data_map['total_upload_count'] + int(data_map['wifi'])) / (1 + old_data_map['total_upload_count']))
+                        old_data_map['total_upload_count'] += 1 
+                        break
+                    
+        if old_data_map is None or len(old_data_map) <= 0:
+            return None 
+        else:
+            return {self.__getProfileMetricLabel__('network_usage'): [old_data_map]}  
+        
     def calculateTag(self,  lines,  tagLst):
         #just use the first metric data, because there is only one item in profile metric collection..
         super(PFMetricHandler_4096_7d5,  self).calculateTag(lines,  tagLst)
@@ -581,8 +658,8 @@ class PFMetricHandler_4096_7d5(PFMetricHandler_Appid_Metricid):
         if len(lines) <= 0:
             return resultLst
         line = lines[0]
-        wifi = line['wifi']
-        gprs = line['gprs']
+        wifi = line['avg_wifi']
+        gprs = line['avg_gprs']
         categoryName = 'wifistat'
         tgs = tags.pf_tag_helpers.PFTagsHelper.final_getTagLstByCategory(tagLst, categoryName)
        
@@ -682,56 +759,9 @@ class PFMetricHandler_4096_7d1(PFMetricHandler_Appid_Metricid):
     
     #
     def calculateProfile(self,  lines, old_lines = None, param = None):
-        def __calculate_app(package_name, raw_app_data, old_app_data):
-           min_str_date = '20300101'
-           max_str_date = '19700101'
-           new_total_upload_count = 0
-           new_total_duration = 0
-           import_flag = 0
-           if old_app_data == None:
-               old_app_data = {'first_upload_date':min_str_date, 'last_upload_date': max_str_date, 'total_upload_count': 0, 'avg_duration': 0}
-           old_last_upload_date = old_app_data.get('last_upload_date')
-           old_first_upload_date = old_app_data.get('first_upload_date')  
-           for str_date in raw_app_data:
-               if str_date <= old_last_upload_date:
-                   continue
-               if min_str_date > str_date:
-                   min_str_date = str_date
-               if max_str_date < str_date:
-                   max_str_date = str_date
-               new_total_upload_count += 1
-               new_total_duration += int(raw_app_data[str_date].get('duration'))
-           if max_str_date > old_last_upload_date:
-               old_app_data['last_upload_date'] = max_str_date
-           if min_str_date < old_first_upload_date:
-               old_app_data['first_upload_date'] = min_str_date
-           old_app_data['avg_duration'] = int((old_app_data['avg_duration'] * old_app_data['total_upload_count'] + new_total_duration) / (new_total_upload_count + old_app_data['total_upload_count']))
-           old_app_data['total_upload_count'] += new_total_upload_count    
-           return old_app_data
            
-        '''
-        lines is:
-        [
-          {
-            com_android_mms:{
-                20140624:{'timestamp': '2014-05-14 08:14:09', 'launch_count': '1', 'duration': '5'}
-                20140623:{'timestamp': '2014-05-14 08:14:09', 'launch_count': '1', 'duration': '5'}
-            }
-            com_xxx_xxx:{},
-          } #Only one element in lines for performance.
-        ]
-        old_lines is:
-        [ 
-          {
-            com_android_mms:{first_upload_date:'20140624', 'last_upload_date':'20140624', total_upload_count = '100', avg_launch_count = '10', "avg_duration" : 20, is_important = '1'}
-            com_xxx_xxx:{}
-          } #Only one element in old_lines for performance.
-        ]    
-        '''
-        #countMap = {}
         tempMap = {}
-        appLst = [{}]
-        if len(lines[0]) == 0:
+        if lines is None or len(lines[0]) == 0:
             return old_lines
         dataMap = lines[0]
         
@@ -742,7 +772,12 @@ class PFMetricHandler_4096_7d1(PFMetricHandler_Appid_Metricid):
             else:
                 old_app_data = old_lines[0].get(str_hour)
             
-            tempMap[str_hour] = __calculate_app(str_hour, dataMap[str_hour], old_app_data)
+            new_data_map = self.final_consist_data_by_key(dataMap[str_hour], old_app_data, ['duration'])
+                        
+            if new_data_map is None or len(new_data_map) == 0:
+                continue
+            
+            tempMap[str_hour] = new_data_map
               
         #result_lst = sorted(tempMap.items() , key=lambda d:d[1]['avg_duration'], reverse = True)
         '''
@@ -762,10 +797,14 @@ class PFMetricHandler_4096_7d1(PFMetricHandler_Appid_Metricid):
         resultLst = []
         if lines is None or len(lines) == 0:
             return None
+        lines = lines[0]
         categoryName = 'useclock'
         l = len(lines)
         if l > 3:
             l = 3
+        #lines is a map, which key is hour.    
+        lines = sorted(lines.items() , key=lambda d:d[1]['avg_duration'], reverse = True)
+        
         i = 0
         tgs = tags.pf_tag_helpers.PFTagsHelper.final_getTagLstByCategory(tagLst, categoryName)
         while i < l:
@@ -777,7 +816,7 @@ class PFMetricHandler_4096_7d1(PFMetricHandler_Appid_Metricid):
             i += 1
                 
         return resultLst
-        
+      
 class PFMetricHandler_4096_640(PFMetricHandler_Appid_Metricid):
     
     __PROFILE_METRIC_LABEL__ = 'content_query'
@@ -815,41 +854,77 @@ class PFMetricHandler_4096_640(PFMetricHandler_Appid_Metricid):
 #Handle channel & version of operation 
 class PFMetricHandler_36864_1808(PFMetricHandler_Appid_Metricid):
     
+    __PROFILE_METRIC_LABEL__ = 'operation'
+    
+    #override
+    def handle_raw_data(self, metric_data_lst, value_map):
+        return self.final_consist_metric_data(metric_data_lst, value_map, value_map, 'channel')  
+    
+    #override
+    def split_data_by_date(self, str_start_day, str_end_day, lines):
+        #根据日期段,选出在metrics_collection表里的metrics.metric_data数组里,符合要求的数据; lines为: metrics.metric_data数组.
+        return self.final_split_data_by_date(str_start_day, str_end_day, lines)
+    
     def calculateProfile(self,  lines, old_lines = None, param = None):
+        tempMap = {}
+        if lines is None or len(lines[0]) == 0:
+            return old_lines
+        dataMap = lines[0]
+        
         '''
         map.items(): {x:y, z:z1, m:n} => [{x:y}, {z:z1}, {m:n}]
         map.items() also like sortedTuple: a list which elements are map. Each k-v pair in map is the element in list.
         sortedTuple is as: [{}, {}]   
         '''
-        result_lst = sorted(lines, key=lambda d:d['timestamp'], reverse = True)
-
-        return {self.__getProfileMetricLabel__('operation'): result_lst}  
-    
-    def handle_raw_data(self, metric_data_lst, value_map):
-        for line in metric_data_lst:
-            if line.get('version') == value_map.get('version'):
-                return metric_data_lst
-        metric_data_lst.append(value_map) 
-        return metric_data_lst
+        for str_channel in dataMap:
+            
+            if old_lines == None:
+                old_app_data = None
+            else:
+                old_app_data = old_lines[0].get(str_channel)
+            
+            new_data_map = self.final_consist_data_by_key(dataMap[str_channel], old_app_data, [])   
+            
+            if new_data_map is None or len(new_data_map) == 0:
+                continue
+            
+            tempMap[str_channel]  = new_data_map
+            
+            for str_date in dataMap[str_channel]:
+                str_version  = dataMap[str_channel][str_date].get('version')
+                tempMap[str_channel]['version'] = str_version 
+                break
+            
+        return {self.__getProfileMetricLabel__('operation'):[tempMap]}
 
     def calculateTag(self,  lines,  tagLst):
         super(PFMetricHandler_36864_1808,  self).calculateTag(lines,  tagLst)
         resultLst = []
         if lines is None or len(lines) == 0:
             return None
-        line = lines[-1]
+        lines = lines[0]
         
+        #lines is a map, which key is hour.    
+        sorted_list = sorted(lines.items() , key=lambda d:d[1]['last_upload_date'], reverse = True)
+        
+        if len(sorted_list) <= 0:
+            return None
+        else:
+            data_map = sorted_list[0][1]
+            str_channel = sorted_list[0][0]
+        ''' {'total_upload_count': 1, 'version': 'null', 'first_upload_date': '20140604', 'last_upload_date': 
+ '20140604'}
+        '''
         categoryName = 'operationversion'
-        version = line.get('version')
+        version = data_map.get('version')
         tgs = tags.pf_tag_helpers.PFTagsHelper.final_getTagLstByCategory(tagLst, categoryName)
         for tg in tgs:
             if tg.isFitTag(version):
                 resultLst.append(tg)
         categoryName = 'operationchannel'
-        version = line.get('channel')
         tgs = tags.pf_tag_helpers.PFTagsHelper.final_getTagLstByCategory(tagLst, categoryName)
         for tg in tgs:
-            if tg.isFitTag(version):
+            if tg.isFitTag(str_channel):
                 resultLst.append(tg)
         return resultLst       
         

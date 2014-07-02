@@ -57,13 +57,6 @@ class PFCollectionManager(Singleton):
     def __getCollectionName__(self,  params = None): 
         return None
         
-    def __getDocByUid__(self,  _id,  collection = None):
-        ''' Get the doc in user profile collection according to uid.'''
-        uidMap = self.__buildUid__(_id)
-        if collection is None:
-            collection = self.mDBManager.getCollection(self.__getCollectionName__())
-        return  self.mDBManager.find(uidMap,  collection) 
-        
     #Override 
     def isDocExist(self,  uid,  collection = None):
         if uid is None:

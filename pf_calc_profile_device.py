@@ -164,6 +164,7 @@ if __name__ == "__main__":  # nDays,  mTop
             #till here, Performance: 4000/10s on PC.
             
             #sys.argv[2] is refered days.
+            
             resultMap = util.utils.calc_profile(uidMap, str_start_day, str_end_day, cur, None, sys.argv[2])
             part2_total_duration += recordTime.getEllaspedTimeSinceLast()
 
