@@ -140,8 +140,6 @@ if __name__ == "__main__":
     skip_line = -1  
     if len(sys.argv) == 5:
         skip_line = int(sys.argv[4])
-
-    print(skip_line)
     
     g_date = sys.argv[3]
     
@@ -193,7 +191,7 @@ if __name__ == "__main__":
         str_first_date =  metricCollectionManager.get_stat_update_date(current_collection_name) 
         
         #因为只记录了第一个更新日期和最后一个更新日期,所以如果不连续更新的话, 就会出现不知道中间有哪些天没有做更新.所以要求必须按天连续导入日志数据.
-        if g_date_controller.is_consistent_day(g_date, str_first_date, str_last_update_date) == 0:
+        if g_date != str_last_update_date and g_date_controller.is_consistent_day(g_date, str_first_date, str_last_update_date) == 0:
             libs.util.logger.Logger.getInstance().debugLog("The day of metrics_collection updating must be consistent !")
             sys.exit(1)
     
@@ -254,7 +252,7 @@ if __name__ == "__main__":
         
         if total_line % 100000 == 0:
             libs.util.logger.Logger.getInstance().debugLog("Processed total: %d lines." % total_line)
-            metricCollectionManager.set_stat_current_line(total_line, metricCollectionManager)
+            metricCollectionManager.set_stat_current_line(total_line, current_collection_name)
         
         if config.const.FLAG_PICK_METRICS_FROM_REDIS == False:
             line = fInputFile.readline()

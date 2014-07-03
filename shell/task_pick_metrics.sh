@@ -1,5 +1,13 @@
 #!/bin/bash
 
+LOG_FILE_PATH="../python_log/"
+
+FILE_PATH="${0%/*}"
+
+CALLED_PATH="${PWD}"
+
+cd ${FILE_PATH}
+
 logger_file_path=`find . -name logger.sh | head -1`
 
 . "${logger_file_path}"
@@ -33,13 +41,15 @@ for s in ${arr[@]}
 do
     print_debug_info "file is: ${str_dir}${arr[i]}"
     print_debug_info "python3 pf_pick_metric_old.py  ./config/metric_map_metrics.txt "${str_dir}${arr[i]}" "${d}""
+    cd "${CALLED_PATH}"
     python3 pf_pick_metric_old.py  ./config/metric_map_metrics.txt "${str_dir}${arr[i]}" "${d}"
+    cd "${FILE_PATH}"
     i=$(($i+1))
 done
 
 if [ ${i} -lt 3 ];then
     echo "error log file."
-    echo "error log file." >> "./python_log/${d}_error.txt"
+    echo "error log file." >> "${LOG_FILE_PATH}${d}_error.txt"
 fi
 
 
