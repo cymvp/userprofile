@@ -131,6 +131,10 @@ class PFMetricHandler_Appid_Metricid:
         else:
             str_date = new_raw_value_map.get(str_date_name)
         
+        #由于存在数据延迟上报的原因, 20140703一天的日志文件里,会有多天的上报数据;一般20140703往前推一段时间内的日志,都应该是合法的数据.
+        #但是日志来也会有很多日期离谱的日志，如果这些日志都写入metrics_collection，则会引入很多无效的数据;所以需要引入过滤机制.
+        #虽然在进行pf_device_collection计算时,会指定日期范围, 所以不会影响该表的计算,但是最好还是在metrics_collection中尽可能存放有效日期的数据.
+        #日志的时间是通过时间戳，或者某些metric传入的特殊字段来判断的.
         if util.utils.DateController.get_instance(None).is_valid_date(str_date) == False:
             return metric_data_lst
             
@@ -342,17 +346,16 @@ class PFMetricHandler_4096_1807(PFMetricHandler_Appid_Metricid):
  'packagename': 'com.android.mms'
         }
         '''
+        package_name = value_map.get('packagename')
+        package_name = util.utils.format_2_mongo_key_(package_name)
+        value_map['packagename'] = package_name
         data_map = __consist_profile_data(value_map)
-        
         return self.final_consist_metric_data(metric_data_lst, value_map, data_map, 'packagename', 'collect_date')  
         
         #collect_date is latest date.
         #timestamp is useless.
         #For performance.
         '''
-        package_name = value_map.get('packagename')
-        str_date = value_map.get('collect_date')
-        package_name = util.utils.format_2_mongo_key_(package_name)
         if len(metric_data_lst) == 0:
             metric_data_lst.append({})
         if metric_data_lst[0].get(package_name) is None:

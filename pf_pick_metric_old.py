@@ -177,35 +177,36 @@ if __name__ == "__main__":
      
     metricCollectionManager = PFMetricCollectionManager()
     
+    current_collection_name = metricCollectionManager.final_getCollection(g_date)
+    
     #start: 获得stat doc的
     c = metricCollectionManager.isDocExist('stat')
     
     #不存在,则创建一个;
     if c is None or c.count() == 0:
         m = {'_id': 'stat', 'current_line': 0, 'is_working': 0, 'last_update_date':g_date, 'first_update_date': g_date}
-        metricCollectionManager.create_stat_doc(m)   
+        metricCollectionManager.create_stat_doc(m, current_collection_name)
+        str_last_update_date = metricCollectionManager.get_stat_update_date(current_collection_name)
+        str_first_date =  metricCollectionManager.get_stat_update_date(current_collection_name) 
+    else:    
+        str_last_update_date = metricCollectionManager.get_stat_update_date(current_collection_name)
+        str_first_date =  metricCollectionManager.get_stat_update_date(current_collection_name) 
+        
+        #因为只记录了第一个更新日期和最后一个更新日期,所以如果不连续更新的话, 就会出现不知道中间有哪些天没有做更新.所以要求必须按天连续导入日志数据.
+        if g_date_controller.is_consistent_day(g_date, str_first_date, str_last_update_date) == 0:
+            libs.util.logger.Logger.getInstance().debugLog("The day of metrics_collection updating must be consistent !")
+            sys.exit(1)
     
-    is_busy = metricCollectionManager.get_stat_busy()
+    is_busy = metricCollectionManager.get_stat_busy(current_collection_name)
     
     if is_busy > 0:
         libs.util.logger.Logger.getInstance().debugLog("metrics_collection is busy, so just quit!")
         sys.exit(1)
-    else:
-        metricCollectionManager.set_stat_busy(1)
-    
-    str_last_update_date = metricCollectionManager.get_stat_update_date()
-    
-    str_first_date =  metricCollectionManager.get_stat_update_date() 
-    
-    #因为只记录了第一个更新日期和最后一个更新日期,所以如果不连续更新的话, 就会出现不知道中间有哪些天没有做更新.所以要求必须按天连续导入日志数据.
-    if g_date_controller.is_consistent_day(g_date, str_first_date, str_last_update_date) == 0:
-        libs.util.logger.Logger.getInstance().debugLog("The day of metrics_collection updating must be consistent !")
-        sys.exit(1)
-        
-    current_collection_name = metricCollectionManager.final_getCollection(g_date)
     
     #Init app filter class object.
     app_filter = AppFilter()
+    
+    metricCollectionManager.set_stat_busy(1, current_collection_name)
     
     #fixme!!!!!!!
     #metricCollectionManager.drop_table()
@@ -253,7 +254,7 @@ if __name__ == "__main__":
         
         if total_line % 100000 == 0:
             libs.util.logger.Logger.getInstance().debugLog("Processed total: %d lines." % total_line)
-            metricCollectionManager.set_stat_current_line(total_line)
+            metricCollectionManager.set_stat_current_line(total_line, metricCollectionManager)
         
         if config.const.FLAG_PICK_METRICS_FROM_REDIS == False:
             line = fInputFile.readline()
@@ -281,14 +282,14 @@ if __name__ == "__main__":
         arr = line.strip().split(',')                
         
         #Fixed me!!!!!!
-        
-        if arr[0] != '0x1808' and arr[0] != '0x1807':#0x7d1
+        '''
+        if arr[0] == '0x1807': #and arr[0] != '0x1807':#0x7d1
             continue
         if arr[0] == '0x1807':
             total_1807_count += 1
             if total_1807_count >= 1:
                 continue
-        
+        '''
         if arr[0] == '0x1807':
             package_name = arr[12]
             package_name = util.utils.format_2_mongo_key_(package_name)
@@ -340,7 +341,7 @@ if __name__ == "__main__":
         value_map_lst.append(valueMap)
         
         #Ensure 0x7d3 has model.
-        if app_id == '4096' and metric_id in ('0x1807', '0x7d3', '0x7d2', '0x7d1'):
+        if (app_id == '4096' and metric_id in ('0x1807', '0x7d3', '0x7d2', '0x7d1')) or (app_id != '4096'):
             raw_metric_id = metric_id
             #model
             __convert_appid_metricid(arr, '1', '0x1')
@@ -447,20 +448,28 @@ if __name__ == "__main__":
                 metricId = metricid_lst[i]
                 appId = appid_lst[i]
                 valueMap = value_map_lst[i]
+                should_append = 0
                 
                 metric_map = metricCollectionManager.isMetricExist(g_last_metric_data_list, metricId, appId)
                 if metric_map is None:
                     #metric_map = metricCollectionManager.get_metric_data_list(uid, appId, metricId)
                     #if metric_map is None:
                     metric_map = metricCollectionManager.buildsubDocMetric(metricId,  appId)
-                    g_last_metric_data_list.append(metric_map)
+                    should_append = 1         
                     #userMap[PFMetricCollectionManager.final_getMetricsLabel()].append(metricMap)
                 
                 metricHandler = ubc.pf_metric_helper.getMetricHandler('%x'% int(metricId, 16),  str(appId)) # hex(metricId)[2:]
                 
                 part11_total_duration += recordTime.getEllaspedTimeSinceLast()
                 
-                metric_map[PFMetricCollectionManager.final_getMetricDataLabel()] = metricHandler.handle_raw_data(metric_map[PFMetricCollectionManager.final_getMetricDataLabel()], valueMap) 
+                metric_data_map = metricHandler.handle_raw_data(metric_map[PFMetricCollectionManager.final_getMetricDataLabel()], valueMap) 
+                
+                if metric_data_map is None or len(metric_data_map) == 0:
+                    should_append = 0
+                
+                if should_append == 1:
+                    metric_map[PFMetricCollectionManager.final_getMetricDataLabel()] = metric_data_map
+                    g_last_metric_data_list.append(metric_map)
                 
                 part12_total_duration += recordTime.getEllaspedTimeSinceLast()
                 
@@ -485,14 +494,14 @@ if __name__ == "__main__":
             part6_total_duration += recordTime.getEllaspedTimeSinceLast()
     
     if str_first_date > g_date:
-        metricCollectionManager.set_stat_first_date(g_date)
+        metricCollectionManager.set_stat_first_date(g_date, current_collection_name)
     
     if str_last_update_date < g_date:
-        metricCollectionManager.set_stat_update_date(g_date)
+        metricCollectionManager.set_stat_update_date(g_date, current_collection_name)
         
-    metricCollectionManager.set_stat_busy(0)
+    metricCollectionManager.set_stat_busy(0, current_collection_name)
     
-    metricCollectionManager.set_stat_current_line(0)
+    metricCollectionManager.set_stat_current_line(0, current_collection_name)
     
     ellapsedTime = recordTime.getEllapsedTime()
     printProcess.printCurrentProcess(ellapsedTime, total_line) 

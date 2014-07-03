@@ -14,14 +14,6 @@
 4096,7d1,2,string,9,string,duration
 4096,7d2,0,int,8,int,timestamp
 4096,7d2,1,string,13,string,account_list
-4096,7d6,0,int,8,int,timestamp
-4096,7d6,1,int,13,int,lon
-4096,7d6,2,string,14,string,lat
-4096,7d6,3,string,9,string,location_type
-4096,640,0,int,8,int,timestamp
-4096,640,1,int,13,int,version
-4096,640,2,string,14,string,query_content
-4096,640,3,string,9,string,count
 36864,1808,0,int,8,int,timestamp
 36864,1808,0,string,32,string,version
 36864,1808,0,string,33,string,channel

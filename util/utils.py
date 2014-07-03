@@ -136,19 +136,14 @@ class DateController:
     def __init__(self, str_date):
         if str_date is None:
             raise util.pf_exception.PFExceptionFormat()
-        
         self.center_date = str_date
-        self.first_date = libs.util.utils.getNextDate(str_date,  5,  0)
-        self.last_date = libs.util.utils.getNextDate(str_date,  5,  1)
+        self.first_date = libs.util.utils.getNextDate(str_date,  7,  0)
     
-    def get_last_valid_date(self):
-        return self.last_date
-
     def get_first_valid_date(self):
         return self.first_date
     
     def is_valid_date(self, str_date):
-        if str_date >= self.first_date and str_date <= self.last_date:
+        if str_date >= self.first_date:
             return True
         else:
             return False
