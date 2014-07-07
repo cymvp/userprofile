@@ -209,7 +209,7 @@ class PFMetricHandler_Appid_Metricid:
             
         for i in range(len(value_name_list)):
             avg_value_name = 'avg_' + value_name_list[i]
-            new_data_map[avg_value_name] = int((new_data_map[avg_value_name] * new_data_map['total_upload_count'] + value_list[i]) / (new_total_upload_count + old_data_map['total_upload_count']))
+            new_data_map[avg_value_name] = int((new_data_map[avg_value_name] * new_data_map['total_upload_count'] + value_list[i]) / (new_total_upload_count + new_data_map['total_upload_count']))
         
         new_data_map['total_upload_count'] += new_total_upload_count    
         return new_data_map
@@ -248,7 +248,7 @@ class PFMetricHandler_4096_1807(PFMetricHandler_Appid_Metricid):
         tempMap = {}
         appLst = [{}]
         if lines is None or len(lines[0]) == 0:
-            return old_lines
+            return None
         dataMap = lines[0]
         
         for packageName in dataMap:
@@ -616,7 +616,7 @@ class PFMetricHandler_4096_7d5(PFMetricHandler_Appid_Metricid):
     
     def calculateProfile(self,  lines, old_lines = None, param = None):
         if lines is None or len(lines) == 0:
-            return old_lines
+            return None
         lines = lines[0]
         
         if old_lines == None or len(old_lines) == 0:
@@ -765,7 +765,7 @@ class PFMetricHandler_4096_7d1(PFMetricHandler_Appid_Metricid):
            
         tempMap = {}
         if lines is None or len(lines[0]) == 0:
-            return old_lines
+            return None
         dataMap = lines[0]
         
         for str_hour in dataMap:
@@ -871,7 +871,7 @@ class PFMetricHandler_36864_1808(PFMetricHandler_Appid_Metricid):
     def calculateProfile(self,  lines, old_lines = None, param = None):
         tempMap = {}
         if lines is None or len(lines[0]) == 0:
-            return old_lines
+            return None
         dataMap = lines[0]
         
         '''

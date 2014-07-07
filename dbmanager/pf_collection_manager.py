@@ -164,6 +164,18 @@ class PFCollectionManager(Singleton):
     def final_get_label_linkde_node():
         return 'profile_linked_node'
     
+    @staticmethod
+    def final_get_stat_label():
+        return 'stat'
+    
+    @staticmethod
+    def final_get_stat_first_date_label():
+        return 'first_update_date'
+
+    @staticmethod
+    def final_get_stat_last_date_label():
+        return 'last_update_date'
+    
     @staticmethod           
     def __get_tag_from_collection__(collection_name, key_list):
         return []

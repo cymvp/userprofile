@@ -80,7 +80,7 @@ def isStrEmpty(s):
     
 def calc_months(strStartDay,  nDays):
     if nDays >= 32: # can not calculate over 1 years, because if sM > dM, we should judge whether the year is same.
-        raise util.pf_exception.PFExceptionFormat
+        raise util.pf_exception.PFExceptionFormat 
     
     strTargetDay = libs.util.utils.getNextDate(strStartDay,  nDays,  0)
     libs.util.logger.Logger.getInstance().debugLog("First day is:" + strTargetDay)
@@ -155,7 +155,30 @@ class DateController:
             return 1
         else:
             return 0
-        
+
+def get_intersect_day(src_first_date, src_last_date, des_first_date, des_last_date):
+    if src_first_date > src_last_date or des_first_date > des_last_date:
+        return (None, None)
+    
+    #由(2,3)转变为[1,4],形成有效日期的闭区间,方便处理及返回临界日期;
+    des_first_date = libs.util.utils.getNextDate(des_first_date,  1,  0)
+    des_last_date = libs.util.utils.getNextDate(des_last_date,  1,  1)
+    
+    #如果两者没有任何交集,则直接返回;
+    if src_last_date < des_first_date or src_first_date > des_last_date:
+        return (None, None)
+    
+    #如果源日期集合包含目标日期集合,则只返回小于目标集合的日期段;
+    if src_first_date <= des_first_date:
+        return (src_first_date, des_first_date)
+    
+    if src_last_date >= des_last_date:
+        return (des_last_date, src_last_date)
+    else:
+        #如果目标日期集合包含源日期集合,则没有合法日期返回;
+        return (None, None)
+    
+     
     
 def buildMetricData(manager,  cursorLst, appId_metricId_map, foreign_tuple_lst = None, num = -1):
     '''userInfoMap is the map, which contains the cuid, imei, model of uid.
@@ -323,10 +346,7 @@ def calc_profile(uidMap,  str_start_day, str_end_day, cur, param = None, tops = 
             if cur is not None:
                 appid_metric_label = metricHandler.get_profile_metric_label()
                 old_lines = cur.get(appid_metric_label)
-            
-            if appIdMetricId == ('36864', '0x1808'):
-                print('!!')
-            
+                       
             new_raw_lines = metricHandler.split_data_by_date(str_start_day, str_end_day, uidMap[uid][appIdMetricId])
             
             #uidMap[uid][appIdMetricId] is a list of certain metric data list.
@@ -343,6 +363,7 @@ def calc_profile(uidMap,  str_start_day, str_end_day, cur, param = None, tops = 
                 '''
                 #dataMap is a map which key is like 'location' and so on,  value is a list(array) of map which is calculated by some stat.
                 #Overwrite k-v of user doc.
+
                 resultMap[uid][next(dataMap.keys().__iter__())] = next(dataMap.values().__iter__())
                 #One metric generates only one sub doc, means dataMap is only one elements.
                 '''

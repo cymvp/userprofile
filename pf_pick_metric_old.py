@@ -178,20 +178,21 @@ if __name__ == "__main__":
     current_collection_name = metricCollectionManager.final_getCollection(g_date)
     
     #start: 获得stat doc的
-    c = metricCollectionManager.isDocExist('stat')
+    c = metricCollectionManager.isDocExist('stat', current_collection_name)
     
     #不存在,则创建一个;
     if c is None or c.count() == 0:
         m = {'_id': 'stat', 'current_line': 0, 'is_working': 0, 'last_update_date':g_date, 'first_update_date': g_date}
         metricCollectionManager.create_stat_doc(m, current_collection_name)
         str_last_update_date = metricCollectionManager.get_stat_update_date(current_collection_name)
-        str_first_date =  metricCollectionManager.get_stat_update_date(current_collection_name) 
+        str_first_date =  metricCollectionManager.get_stat_first_date(current_collection_name) 
     else:    
         str_last_update_date = metricCollectionManager.get_stat_update_date(current_collection_name)
-        str_first_date =  metricCollectionManager.get_stat_update_date(current_collection_name) 
+        str_first_date =  metricCollectionManager.get_stat_first_date(current_collection_name) 
         
         #因为只记录了第一个更新日期和最后一个更新日期,所以如果不连续更新的话, 就会出现不知道中间有哪些天没有做更新.所以要求必须按天连续导入日志数据.
-        if g_date != str_last_update_date and g_date_controller.is_consistent_day(g_date, str_first_date, str_last_update_date) == 0:
+        #判断g_date != str_last_update_date是因为一天日志需要3个文件, 如果不做限定, 则只能导入第一个文件.所以也就允许最后一天的日志，和第一天的日志,可以重复导入.
+        if g_date != str_last_update_date and g_date != str_first_date and g_date_controller.is_consistent_day(g_date, str_first_date, str_last_update_date) == 0:
             libs.util.logger.Logger.getInstance().debugLog("The day of metrics_collection updating must be consistent !")
             sys.exit(1)
     
@@ -277,7 +278,10 @@ if __name__ == "__main__":
 
         '''tupl is ((4096,0x1807), { time:"2013-06-07 15:34:22", field_1:"value", field_2:"value" }) '''
         
-        arr = line.strip().split(',')                
+        arr = line.strip().split(',')    
+        
+        if len(arr) != 38 or  arr[0].startswith('0x'):
+            continue            
         
         #Fixed me!!!!!!
         '''
