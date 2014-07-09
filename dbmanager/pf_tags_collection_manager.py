@@ -100,11 +100,11 @@ class PFTagsCollectionManager(PFCollectionManager):
     
     @staticmethod
     def getCreateTimeLabel():
-        return 'create_time'
+        return 'first_update_date'
     
     @staticmethod
     def getUpdateTimeLabel():
-        return 'update_time'    
+        return 'last_update_date'    
  
     
 if __name__ == "__main__":

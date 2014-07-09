@@ -144,7 +144,7 @@ if __name__ == "__main__":
                     resultMap[_id][list(foreign_data_map.keys())[0]] = next(foreign_data_map.values().__iter__())
                     #g_CollectionManager.insertOrUpdateCollection(_id, resultMap[_id])
                 cur, is_insert = g_CollectionManager.merge_new_data_map(cur, _id, resultMap[_id])
-                tagMap, userInfoMap = util.calc_tag.calc_tags(g_CollectionManager, cur,  tagLst, tagObjectLst)
+                tagMap, userInfoMap = util.calc_tag.calc_tags(g_CollectionManager, None, None, cur,  tagLst, tagObjectLst)
                 for _id in tagMap:
                     profileMap = {g_CollectionManager.__class__.final_getProfileTagLabel():tagMap[_id]}
                     cur, temp_flag = g_CollectionManager.merge_new_data_map(cur, _id, profileMap)

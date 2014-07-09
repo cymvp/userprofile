@@ -226,7 +226,7 @@ if __name__ == "__main__":  # nDays,  mTop
             
             cur, is_insert = userProfileManager.merge_new_data_map(cur, uid, cuid, imei, str_start_day, str_end_day, resultMap[uid])
             
-            tagMap, userInfoMap = util.calc_tag.calc_tags(userProfileManager, cur,  tagLst, tagObjectLst)
+            tagMap, userInfoMap = util.calc_tag.calc_tags(userProfileManager, str_start_day, str_end_day, cur,  tagLst, tagObjectLst)
             
             '''profileMap is:
                 "profile_tags":[  

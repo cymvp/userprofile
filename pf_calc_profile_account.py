@@ -296,7 +296,7 @@ if __name__ == "__main__":
                     resultMap[uid][account_id][deviceManager.final_get_label_linkde_node()][next(foreign_data_map.__iter__())] = next(foreign_data_map.values().__iter__())
                 
                 cur, is_insert = userManager.merge_new_data_map(cur, account_id, resultMap[uid][account_id])
-                tagMap, userInfoMap = util.calc_tag.calc_tags(userManager, cur,  tagLst, tagObjectLst)
+                tagMap, userInfoMap = util.calc_tag.calc_tags(userManager, None, None, cur,  tagLst, tagObjectLst)
                 #userManager.insertOrUpdateCollectionDevice(account_id, resultMap[uid][account_id])
                 part4_total_duration += recordTime.getEllaspedTimeSinceLast()
                 for accountId in tagMap:
