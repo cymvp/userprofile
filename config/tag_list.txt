@@ -123,3 +123,5 @@ useclock,20,20点
 useclock,21,21点
 useclock,22,22点
 useclock,23,23点
+gender,男,男
+gender,女,女

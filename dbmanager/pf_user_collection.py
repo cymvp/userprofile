@@ -7,10 +7,6 @@ class PFUserCollectionManager(PFCollectionManager):
     cache_data = {}
     
     @staticmethod
-    def final_getProfileTagLabel():
-        return 'profile_tags'
-    
-    @staticmethod
     def final_getLabelAccountType():
         return 'account_type'
     

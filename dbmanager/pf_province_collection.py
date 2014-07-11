@@ -7,10 +7,6 @@ class PFProvinceCollectionManager(PFCollectionManager):
     cache_data = {}
     
     @staticmethod
-    def final_getProfileTagLabel():
-        return 'profile_tags'
-    
-    @staticmethod
     def final_getLabel_model():
         return 'model'
    
@@ -51,7 +47,7 @@ class PFProvinceCollectionManager(PFCollectionManager):
         userMap[PFProvinceCollectionManager.final_getUidLabel()] = _id
         return userMap
 
-    def merge_new_data_map(self, cur, _id, value_map):
+    def merge_new_data_map(self, cur, _id, str_start_day, str_end_day, value_map):
         isInsert = 0
         data_map = {}
         if cur is None:
@@ -71,6 +67,9 @@ class PFProvinceCollectionManager(PFCollectionManager):
                   .......
                 } 
         ''' 
+        
+        data_map = self.__set_stat_doc(data_map, str_start_day, str_end_day)  
+            
         for statName in value_map:  #valueMap[chunleiId]
             data_map[statName] = value_map[statName]
         return (data_map, isInsert)

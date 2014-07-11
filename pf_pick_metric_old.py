@@ -13,6 +13,7 @@ import libs.redis.redis_manager
 import libs.util.logger
 import config.const
 import pymongo
+import bson
 
 def handle_data(arr,  metricMap):
     '''
@@ -121,8 +122,16 @@ def insertOrUpdateUser(self,  cur, chunleiId,  cuid,  imei, metrics_list, record
         
         part10_total_duration += recordTime.getEllaspedTimeSinceLast()  
         
-    except (pymongo.errors.TimeoutError,  pymongo.errors.AutoReconnect) as e:
+    except (pymongo.errors.TimeoutError,  pymongo.errors.AutoReconnect, bson.errors.InvalidDocument) as e:
         print('111111')
+        if userMap is not None:
+            print(str(userMap))
+        else:
+            print("userMap is None!")
+        if chunleiId is not None:
+            print(chunleiId)
+        else:
+            print("chunleiId is None!")
         libs.util.logger.Logger.getInstance().errorLog(traceback.format_exc())
         libs.util.logger.Logger.getInstance().errorLog('!!!! %s' % e)
         raise util.pf_exception.PFExceptionWrongStatus
@@ -278,11 +287,11 @@ if __name__ == "__main__":
 
         '''tupl is ((4096,0x1807), { time:"2013-06-07 15:34:22", field_1:"value", field_2:"value" }) '''
         
-        arr = line.strip().split(',')    
+        arr = line.strip().split(',')                
         
-        if len(arr) != 38 or  arr[0].startswith('0x'):
-            continue            
-        
+        if len(arr) != 38 or  arr[0].startswith('0x') == False:
+            continue
+
         #Fixed me!!!!!!
         '''
         if arr[0] == '0x1807': #and arr[0] != '0x1807':#0x7d1

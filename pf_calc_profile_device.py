@@ -134,7 +134,7 @@ if __name__ == "__main__":  # nDays,  mTop
         libs.util.logger.Logger.getInstance().debugLog("metrics_collection is busy, so just quit!")
         sys.exit(1)
     else:
-        userProfileManager.set_stat_busy(0)
+        userProfileManager.set_stat_busy(1)
         
     write_thread_obj = write_thread()
     write_thread_obj.start()               
@@ -178,6 +178,9 @@ if __name__ == "__main__":  # nDays,  mTop
                 break
             
             uid = cur[PFCollectionManager.final_getUidLabel()]
+            
+            if uid == '869777010300765ZqvnW':
+                print('!!')
             
             if uid == 'stat':
                 continue

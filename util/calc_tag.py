@@ -53,7 +53,8 @@ def calc_tags(manager, str_start_day, str_end_day, cur,  tagLst, tagObjectLst):
                 #pass
                 #newTagLst is sub collection of all tag collection, so all of newTagLst is newest.
                 strTag = dbmanager.pf_tags_collection_manager.PFTagsCollectionManager.final_buildTagMap(tg)
-                newTagLst.append(strTag)
+                if strTag not in newTagLst:
+                    newTagLst.append(strTag)
 
     linked_list = manager.final_get_linked_tag(cur) 
 
@@ -110,7 +111,7 @@ def __pickTag(oldTagLst,  newTagLst, str_start_day, str_end_day):
     for tag_category in oldTagMap:
         if result_map.get(tag_category) is None:
             result_map[tag_category] = []
-            result_map[tag_category].extend(newTagMap[tag_category])
+            result_map[tag_category].extend(oldTagMap[tag_category])
             split_index_map[tag_category] = 0
         else:
             for old_tg in oldTagMap[tag_category]:

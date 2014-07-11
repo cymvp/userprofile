@@ -285,11 +285,7 @@ def buildMetricData(manager,  cursorLst, appId_metricId_map, foreign_tuple_lst =
         ......
     }    
     '''        
-    
-    #libs.util.logger.Logger.getInstance().debugLog("total num is: %s ." % total_device_count)
-    #libs.util.logger.Logger.getInstance().debugLog("recordTime time is: %s ." % recordTime.getEllapsedTime()) 
-    #libs.util.logger.Logger.getInstance().debugLog("total time of part1 is: %.3fs ." % part1_total_duration)
-    #libs.util.logger.Logger.getInstance().debugLog("total time of part2 is: %.3fs ." % part2_total_duration)
+
     return (uidMap, userInfoMap)
 
 
