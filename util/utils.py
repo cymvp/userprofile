@@ -149,9 +149,9 @@ class DateController:
             return False
     
     def is_consistent_day(self, src_date, des_first_date, des_last_date):
-        if libs.util.utils.getNextDate(src_date,  1,  0) == des_first_date:
+        if libs.util.utils.getNextDate(src_date,  1,  1) == des_first_date:
             return -1
-        elif libs.util.utils.getNextDate(src_date,  1,  1) == des_last_date:
+        elif libs.util.utils.getNextDate(src_date,  1,  0) == des_last_date:
             return 1
         else:
             return 0
