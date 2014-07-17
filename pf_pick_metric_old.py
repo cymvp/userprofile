@@ -122,19 +122,23 @@ def insertOrUpdateUser(self,  cur, chunleiId,  cuid,  imei, metrics_list, record
         
         part10_total_duration += recordTime.getEllaspedTimeSinceLast()  
         
-    except (pymongo.errors.TimeoutError,  pymongo.errors.AutoReconnect, bson.errors.InvalidDocument) as e:
-        print('111111')
-        if userMap is not None:
-            print(str(userMap))
-        else:
-            print("userMap is None!")
-        if chunleiId is not None:
-            print(chunleiId)
-        else:
-            print("chunleiId is None!")
+    except (pymongo.errors.TimeoutError,  pymongo.errors.AutoReconnect) as e:
         libs.util.logger.Logger.getInstance().errorLog(traceback.format_exc())
         libs.util.logger.Logger.getInstance().errorLog('!!!! %s' % e)
         raise util.pf_exception.PFExceptionWrongStatus
+    except bson.errors.InvalidDocument as e:
+        libs.util.logger.Logger.getInstance().errorLog('Happened bson.errors.InvalidDocument!')
+        if userMap is not None:
+            libs.util.logger.Logger.getInstance().errorLog(str(userMap))
+        else:
+            libs.util.logger.Logger.getInstance().errorLog("userMap is None!")
+        if chunleiId is not None:
+            libs.util.logger.Logger.getInstance().errorLog(chunleiId)
+        else:
+            libs.util.logger.Logger.getInstance().errorLog("chunleiId is None!")
+        libs.util.logger.Logger.getInstance().errorLog(traceback.format_exc())
+        libs.util.logger.Logger.getInstance().errorLog('!!!! %s' % e)
+        raise util.pf_exception.PFExceptionFormat
 
 
 if __name__ == "__main__":
