@@ -47,7 +47,7 @@ do
     i=$(($i+1))
 done
 
-if [ ${i} -lt 3 ];then
+if [ ${i} -lt 2 ];then
     echo "error log file."
     echo "error log file." >> "${LOG_FILE_PATH}${d}_error.txt"
 fi

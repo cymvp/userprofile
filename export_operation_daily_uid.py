@@ -12,7 +12,7 @@ import traceback
 from dbmanager.pf_collection_manager import PFCollectionManager
 from dbmanager.pf_metric_collection_manager import PFMetricCollectionManager
 
-MAX_UID_COUNT_PER_DOC = 2
+MAX_UID_COUNT_PER_DOC = 100000
 
 class PFOperationDailyUVCollectionManager(PFCollectionManager):
     __PROFILE_COLLCETION_PREFIX = 'operation_daily_uv_collection'
