@@ -7,7 +7,7 @@ from dbmanager.pf_collection_manager import PFCollectionManager
 import ubc.pf_metric_helper
 
 class PFMetricCollectionManager(PFCollectionManager):
-    __UBC_METRIC_COLLCETION_PREFIX = 'test_metrics_collection_'
+    __UBC_METRIC_COLLCETION_PREFIX = 'metrics_collection_'
     cache_cursors = None
     cache_data = {}
     stat_doc = None

@@ -6,7 +6,7 @@ from dbmanager.pf_collection_manager import PFCollectionManager
 
 
 class PFHWVCollectionManager(PFCollectionManager):
-    __PROFILE_COLLCETION_PREFIX = 'test_profile_hwv_collection'
+    __PROFILE_COLLCETION_PREFIX = 'profile_hwv_collection'
     cache_cursors = None
     cache_data = {}
     stat_doc = None
