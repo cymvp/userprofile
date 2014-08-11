@@ -600,7 +600,10 @@ class PFMetricHandler_4096_7d3(PFMetricHandler_Appid_Metricid):
                         if tg.isFitTag((x_dot, y_dot)) :
                             resultLst.append(tg)
         return resultLst
-        
+
+class PFMetricHandler36864_7d3(PFMetricHandler_4096_7d3):
+    pass
+       
 class PFMetricHandler_4096_7d5(PFMetricHandler_Appid_Metricid):
     
     __PROFILE_METRIC_LABEL__ = 'network_usage'

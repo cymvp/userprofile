@@ -41,7 +41,7 @@ class PFDeviceCollectionManager(PFCollectionManager):
             data_map[label_stat][label_last_date] = last_update_date
         return data_map 
     
-    def merge_new_data_map(self, cur, chunleiId,  cuid, imei,, value_map):
+    def merge_new_data_map(self, cur, chunleiId,  cuid, imei, str_start_day, str_end_day , value_map):
         isInsert = 0
         data_map = {}
         if cur is None:

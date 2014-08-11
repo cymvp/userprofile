@@ -17,6 +17,8 @@
 36864,1808,0,int,8,int,timestamp
 36864,1808,0,string,32,string,version
 36864,1808,0,string,33,string,channel
+36864,7d3,0,int,8,int,timestamp
+36864,7d3,1,string,13,string,deviceinfo
 1,1,0,string,6,string,model
 1,2,0,string,36,string,province
 1,4,0,string,2,string,deviceid
