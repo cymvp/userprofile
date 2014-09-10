@@ -22,6 +22,7 @@ else:
     MONGODB_HOST = '10.5.0.81'
     MONGODB_PORT = 27017
     MONGODB_DBNAME = 'user_profile'
+    MONGODB_DBNAME_RESULT = 'profile_result'
     
     #MONGODB_HOST = 'hz01-wise-store05107.hz01.baidu.com'
     #MONGODB_PORT = 27100

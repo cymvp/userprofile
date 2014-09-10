@@ -2,11 +2,20 @@ import dbmanager.pf_tags_collection_manager
 from dbmanager.pf_collection_manager import PFCollectionManager
 from dbmanager.pf_tags_collection_manager import PFTagsCollectionManager
 import util.pf_exception
+from config.const import *
+from  dbmanager import pf_dbmanager
 
 class PFTagUidsCollectionManager(PFCollectionManager):
     __COLLCETION_PREFIX = 'tag_uids_collection'
     cache_cursors = None
     cache_data = {}
+    
+    #Override
+    def __init__(self):
+        if not hasattr(self, 'mDBManager'):
+            self.mDBManager = pf_dbmanager.PFDBManager(dbName = MONGODB_DBNAME_RESULT)
+            self.mDBManager.startDB()
+        pass    
     
     #override              
     def __getCollectionName__(self,   params = None):

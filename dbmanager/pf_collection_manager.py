@@ -5,8 +5,8 @@ class Singleton(object):
         if not hasattr(cls, '_instance'):  
             orig = super(Singleton, cls)  
             cls._instance = orig.__new__(cls, *args, **kw)
-            cls._instance.mDBManager = pf_dbmanager.PFDBManager()
-            cls._instance.mDBManager.startDB()
+            #cls._instance.mDBManager = pf_dbmanager.PFDBManager()
+            #cls._instance.mDBManager.startDB()
         return cls._instance    
 
 class PFCollectionManager(Singleton):
@@ -16,6 +16,9 @@ class PFCollectionManager(Singleton):
     
     #Override
     def __init__(self):
+        if not hasattr(self, 'mDBManager'):
+            self.mDBManager = pf_dbmanager.PFDBManager()
+            self.mDBManager.startDB()
         #self.mDBManager = pf_dbmanager.PFDBManager()
         #self.mDBManager.startDB()
         pass

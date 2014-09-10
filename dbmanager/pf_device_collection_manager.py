@@ -6,12 +6,21 @@ from dbmanager.pf_collection_manager import PFCollectionManager
 from dbmanager.pf_app_collection import PFAPPCollectionManager
 from dbmanager.pf_hwv_collection import PFHWVCollectionManager
 from dbmanager.pf_province_collection import PFProvinceCollectionManager
-        
+from config.const import *
+from  dbmanager import pf_dbmanager
+
 class PFDeviceCollectionManager(PFCollectionManager):
     __PROFILE_COLLCETION_PREFIX = 'profile_device_collection'
     cache_cursors = None
     cache_data = {}
     stat_doc = None
+    
+    #Override
+    def __init__(self):
+        if not hasattr(self, 'mDBManager'):
+            self.mDBManager = pf_dbmanager.PFDBManager(dbName = MONGODB_DBNAME_RESULT)
+            self.mDBManager.startDB()
+        pass
     
     @staticmethod
     def final_getProfileTagLabel():

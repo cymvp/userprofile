@@ -8,6 +8,8 @@ import tags.pf_tags
 import pymongo
 import util
 import traceback
+from config.const import *
+from  dbmanager import pf_dbmanager
 
 from dbmanager.pf_collection_manager import PFCollectionManager
 from dbmanager.pf_metric_collection_manager import PFMetricCollectionManager
@@ -16,6 +18,13 @@ MAX_UID_COUNT_PER_DOC = 100000
 
 class PFOperationDailyUVCollectionManager(PFCollectionManager):
     __PROFILE_COLLCETION_PREFIX = 'operation_daily_uv_collection'
+    
+    #Override
+    def __init__(self):
+        if not hasattr(self, 'mDBManager'):
+            self.mDBManager = pf_dbmanager.PFDBManager(dbName = MONGODB_DBNAME_RESULT)
+            self.mDBManager.startDB()
+        pass   
     
     @staticmethod
     def getCollectionName():
